@@ -1,0 +1,15 @@
+:root{--accent:#7ec242;}
+*{box-sizing:border-box;font-family:Inter,system-ui,sans-serif}
+body{margin:0;display:grid;grid-template-columns:360px 1fr;min-height:100vh;background:#0b1524}
+aside{background:#0f172a;color:#e5e7eb;padding:16px;border-right:1px solid #22314f;overflow:auto}
+h2{font-size:16px;margin:6px 0 12px}
+label{display:block;font-size:12px;margin:8px 0 4px;color:#9fb3c9}
+input,select,button{width:100%;padding:10px;border-radius:8px;border:1px solid #274062;background:#0b1325;color:#e5e7eb}
+.btn{cursor:pointer;background:#06b6d4;border:0;color:#001018;font-weight:700;margin-top:10px}
+.btn.secondary{background:#1e293b;color:#e5e7eb}
+main{display:grid;place-items:center;padding:14px}
+canvas{width:360px;height:640px;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.section-title{font-size:12px;opacity:.9;margin-top:10px}
+.airline-list{border:1px dashed #334155;border-radius:10px;padding:8px}
+.airline-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 34px;gap:6px;margin-bottom:6px}
+.stack{display:flex;gap:8px;margin-top:10px}

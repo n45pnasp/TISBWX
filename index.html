@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flight Schedule Poster – WA Status</title>
+  <link rel="stylesheet" href="jadwal.css" />
+</head>
+<body>
+  <aside>
+    <h2>Generator Poster Jadwal</h2>
+    <label>Judul Besar</label>
+    <input id="titleText" value="FLIGHT SCHEDULE" />
+    <div class="row">
+      <div>
+        <label>Nama Bandara</label>
+        <input id="airportName" value="Banyuwangi Airport" />
+      </div>
+      <div>
+        <label>Hari & Tanggal</label>
+        <input id="dateText" value="MINGGU, 19 OKTOBER 2025" />
+      </div>
+    </div>
+    <label>Operating Hours</label>
+    <input id="hoursText" value="Operating Hours 06.00 - 18.00 WIB" />
+    <div class="row">
+      <div>
+        <label>Logo Kiri (Injourney)</label>
+        <input type="file" id="logoLeft" accept="image/*" />
+      </div>
+      <div>
+        <label>Logo Kanan (Bandara)</label>
+        <input type="file" id="logoRight" accept="image/*" />
+      </div>
+    </div>
+    <label>Background</label>
+    <input type="file" id="bgInput" accept="image/*" />
+    <div class="section-title">KEDATANGAN / ARRIVAL</div>
+    <div id="arrivals" class="airline-list"></div>
+    <button class="btn" id="addArrival">+ Tambah Baris Kedatangan</button>
+    <div class="section-title">KEBERANGKATAN / DEPARTURE</div>
+    <div id="departures" class="airline-list"></div>
+    <button class="btn" id="addDeparture">+ Tambah Baris Keberangkatan</button>
+    <div class="stack">
+      <button class="btn" id="renderBtn">Render</button>
+      <button class="btn secondary" id="resetBtn">Reset</button>
+    </div>
+    <div class="stack">
+      <button class="btn" id="savePng">Download PNG</button>
+      <button class="btn" id="savePdf">Download PDF</button>
+    </div>
+  </aside>
+  <main>
+    <canvas id="poster" width="1080" height="1920"></canvas>
+  </main>
+  <script src="jadwal.js"></script>
+</body>
+</html>
