@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flight Schedule Poster – WA Status</title>
-  <link rel="stylesheet" href="jadwal.css" />
+  <link rel="stylesheet" href="jadwal.css?v=1" />
 
   <!-- Font Montserrat -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +20,6 @@
   <aside>
     <h2>Generator Poster Jadwal</h2>
 
-    <!-- Layout baru: hanya isi tanggal, jadwal, dan operating hours -->
     <label>Hari & Tanggal</label>
     <input id="dateText" value="MINGGU, 19 OKTOBER 2025" />
 
@@ -29,7 +28,6 @@
 
     <hr class="small-divider">
 
-    <!-- Kontrol tampilan -->
     <label>Ukuran Huruf – Tanggal (px)</label>
     <input id="sizeDate" type="range" min="28" max="72" step="1" value="48">
     <span class="small" id="sizeDateVal">48</span>
@@ -47,12 +45,10 @@
 
     <hr class="small-divider">
 
-    <!-- Background -->
     <label>Background</label>
     <input type="file" id="bgInput" accept="image/*" />
     <small class="hint">Default file: <code>bahan_flyer_bwx.png</code></small>
 
-    <!-- Editor jadwal -->
     <div class="section-title">KEDATANGAN / ARRIVAL (maks 2 baris)</div>
     <div id="arrivals" class="airline-list"></div>
     <button class="btn" id="addArrival">+ Tambah Baris Kedatangan</button>
@@ -68,8 +64,7 @@
     </div>
 
     <p class="small">
-      Tips: kanvas 1080×1920 (pas WhatsApp Status). Teks bisa <b>di-drag</b> untuk geser posisi.
-      Tekan <b>G</b> untuk sembunyikan/lihat panduan, <b>R</b> untuk reset posisi.
+      Tips: kanvas 1080×1920 (WA Status). Teks bisa <b>drag & drop</b>. Tekan <b>G</b> (guides) dan <b>R</b> (reset posisi).
     </p>
   </aside>
 
@@ -77,6 +72,6 @@
     <canvas id="poster" width="1080" height="1920" aria-label="Preview poster"></canvas>
   </main>
 
-  <script src="jadwal.js"></script>
+  <script src="jadwal.js?v=2"></script>
 </body>
 </html>
