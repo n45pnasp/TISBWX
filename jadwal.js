@@ -1,16 +1,13 @@
-// ====== Canvas
+// ====== Canvas & ctx
 const c = document.getElementById('poster');
 const ctx = c.getContext('2d');
 
-// ====== Gunakan nama file tanpa spasi/kurung untuk aman di GitHub Pages
-const ASSETS = {
-  bg: 'bahan_flyer_bwx.png' // background layout baru (yang sudah ada header/garis/pill hijau)
-};
+// ====== Asset (background layout baru)
+const ASSETS = { bg: 'bahan_flyer_bwx.png' };
 
-// ====== State (maks 2 baris tiap seksi sesuai layout)
+// ====== State data (maks 2 baris per seksi)
 const state = {
   bgURL: ASSETS.bg,
-  // tampil di baris tepat di atas "KEDATANGAN / ARRIVAL"
   dateText: (document.getElementById('dateText')?.value) || 'MINGGU, 19 OKTOBER 2025',
   arrivals: [
     { airline: 'SUPER AIR JET', flight: 'IU 370', city: 'JAKARTA',  time: '10:15 WIB' },
@@ -23,113 +20,224 @@ const state = {
   hoursText: (document.getElementById('hoursText')?.value) || 'Operating Hours 06.00 - 18.00 WIB'
 };
 
-// ====== UI (sidebar) – rebuild baris yang bisa diedit
-function makeRow(container, list, idx){
-  const row = document.createElement('div');
-  row.className = 'airline-row';
-  row.innerHTML = `
-    <input placeholder="Airlines" data-k="airline"/>
-    <input placeholder="Flight No" data-k="flight"/>
-    <input placeholder="Origin/Dest" data-k="city"/>
-    <input placeholder="Time" data-k="time"/>
-    <button type="button" title="Hapus">✕</button>
-  `;
-  row.querySelectorAll('[data-k]').forEach(el=>{
-    const k = el.dataset.k; el.value = list[idx][k] || '';
-    el.oninput = ()=> list[idx][k] = el.value;
-  });
-  row.querySelector('button').onclick = ()=>{ list.splice(idx,1); rebuild(); };
-  container.appendChild(row);
-}
-function rebuild(){
-  const A = document.getElementById('arrivals');
-  const D = document.getElementById('departures');
-  if(!A || !D) return;
-  A.innerHTML = ''; D.innerHTML = '';
-  state.arrivals.slice(0,2).forEach((_,i)=>makeRow(A, state.arrivals, i));
-  state.departures.slice(0,2).forEach((_,i)=>makeRow(D, state.departures, i));
-}
-rebuild();
-
-// ====== File picker untuk ganti background
-document.getElementById('bgInput')?.addEventListener('change', async (e)=>{
-  const f = e.target.files?.[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = (ev)=>{ state.bgURL = ev.target.result; render(); };
-  r.readAsDataURL(f);
-});
-
-// ====== Tombol
-document.getElementById('renderBtn')?.addEventListener('click', render);
-document.getElementById('savePng')?.addEventListener('click', savePNG);
-document.getElementById('savePdf')?.addEventListener('click', savePDF);
-
-// ====== Posisi teks yang dipetakan ke layout background baru (1080×1920)
+// ====== Posisi default (disesuaikan ke layout background baru 1080×1920)
 const POS = {
-  // tanggal tepat di bawah judul & di atas label ARRIVAL
-  dateY: 560,
-
-  // koordinat kolom (diset agar pas dengan header putih di BG)
-  col: {
-    airline: 110,
-    flight : 420,
-    city   : 690,  // origin / destination
-    time   : 940
-  },
-
-  // Y baris tengah garis putih (perkirakan dengan visual BG)
-  arrivalsY: [ 650, 760 ],     // 2 baris kedatangan
-  departuresY: [ 1030, 1140 ], // 2 baris keberangkatan
-
-  // pusat kotak hijau (pill)
-  hoursCenter: { x: 540, y: 1372 }
+  dateY: 560,                           // Hari & Tanggal
+  col: { airline:110, flight:420, city:690, time:990 }, // x kolom (time pakai align 'right')
+  arrivalsY:   [ 650, 760 ],
+  departuresY: [1030, 1140],
+  hoursCenter: { x:540, y:1372 }        // tengah pill hijau
 };
 
-// ====== Render
-async function loadImage(src){
+// ====== Items (teks yang bisa digeser)
+let items = [];        // {id, getText, x, y, align, font, color, h}
+let showGuides = true; // panduan
+const LS_KEY = 'fs_positions_v1';
+
+function applySavedPositions() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    items.forEach(it => {
+      if (saved[it.id]) { it.x = saved[it.id].x; it.y = saved[it.id].y; }
+    });
+  } catch {}
+}
+function savePositions() {
+  const payload = {};
+  items.forEach(it => payload[it.id] = { x: it.x, y: it.y });
+  localStorage.setItem(LS_KEY, JSON.stringify(payload));
+}
+
+function buildItems() {
+  items = [];
+
+  // 1) Hari & Tanggal (center)
+  items.push({
+    id: 'date',
+    getText: () => (document.getElementById('dateText')?.value || state.dateText).toUpperCase(),
+    x: c.width/2,
+    y: POS.dateY,
+    align: 'center',
+    font: '900 48px Inter, system-ui, sans-serif',
+    color: '#ffffff',
+    h: 54
+  });
+
+  // helper kolom untuk baris
+  const cols = [
+    { key:'airline', x:POS.col.airline, align:'left'  },
+    { key:'flight',  x:POS.col.flight,  align:'left'  },
+    { key:'city',    x:POS.col.city,    align:'left'  },
+    { key:'time',    x:POS.col.time,    align:'right' },
+  ];
+  const makeRowItems = (prefix, rows, yList) => {
+    rows.slice(0,2).forEach((row, i) => {
+      cols.forEach(col => {
+        items.push({
+          id: `${prefix}${i}_${col.key}`,
+          getText: () => ( (rows[i]?.[col.key] || '').toUpperCase() ),
+          x: col.x, y: yList[i],
+          align: col.align,
+          font: '800 42px Inter, system-ui, sans-serif',
+          color: '#ffffff',
+          h: 48
+        });
+      });
+    });
+  };
+  makeRowItems('arr_', state.arrivals, POS.arrivalsY);
+  makeRowItems('dep_', state.departures, POS.departuresY);
+
+  // 3) Operating hours di pill hijau (center)
+  items.push({
+    id: 'hours',
+    getText: () => (document.getElementById('hoursText')?.value || state.hoursText),
+    x: POS.hoursCenter.x,
+    y: POS.hoursCenter.y,
+    align: 'center',
+    font: '900 44px Inter, system-ui, sans-serif',
+    color: '#0c2a1a',
+    h: 50
+  });
+
+  applySavedPositions();
+}
+
+// ====== Load IMG
+function loadImage(src){
   return new Promise((res, rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
 }
 
+// ====== Render
 async function render(){
-  // ambil input terbaru dari sidebar
+  // sinkronisasi input
   state.dateText  = document.getElementById('dateText')?.value || state.dateText;
   state.hoursText = document.getElementById('hoursText')?.value || state.hoursText;
+
+  // bangun items setiap render (agar getText selalu update)
+  buildItems();
 
   // background
   const bg = await loadImage(state.bgURL);
   ctx.clearRect(0,0,c.width,c.height);
   ctx.drawImage(bg, 0, 0, c.width, c.height);
 
-  // Tanggal
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.font = '900 48px Inter, system-ui, sans-serif';
-  ctx.fillText(state.dateText.toUpperCase(), c.width/2, POS.dateY);
+  // gambar teks
+  items.forEach((it, idx) => {
+    ctx.save();
+    ctx.fillStyle = it.color;
+    ctx.font = it.font;
+    ctx.textAlign = it.align;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(it.getText(), it.x, it.y);
 
-  // Helper tulis baris
-  function drawRow(y, row){
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-    ctx.font = '800 42px Inter, system-ui, sans-serif';
-    ctx.fillText((row.airline || '').toUpperCase(), POS.col.airline, y);
-    ctx.fillText((row.flight  || '').toUpperCase(), POS.col.flight,  y);
-    ctx.fillText((row.city    || '').toUpperCase(), POS.col.city,    y);
-    ctx.textAlign = 'right';
-    ctx.fillText((row.time    || '').toUpperCase(), POS.col.time+50, y); // +50 agar tidak mentok sisi kanan header
-  }
-
-  // Arrival rows (maks 2)
-  POS.arrivalsY.forEach((y,i)=>{ if(state.arrivals[i]) drawRow(y, state.arrivals[i]); });
-
-  // Departure rows (maks 2)
-  POS.departuresY.forEach((y,i)=>{ if(state.departures[i]) drawRow(y, state.departures[i]); });
-
-  // Operating hours di pill hijau
-  ctx.fillStyle = '#0c2a1a';
-  ctx.textAlign = 'center';
-  ctx.font = '900 44px Inter, system-ui, sans-serif';
-  ctx.fillText(state.hoursText, POS.hoursCenter.x, POS.hoursCenter.y);
+    if (showGuides) {
+      // bounding box kasar
+      const w = ctx.measureText(it.getText()).width;
+      const box = getItemRect(it, w);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#00ffff88';
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+      // index label
+      ctx.fillStyle = '#00ffff';
+      ctx.font = '700 20px Inter, system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText(`#${idx+1}`, box.x+4, box.y+20);
+    }
+    ctx.restore();
+  });
 }
+
+// hit-test rectangle untuk item (menggunakan width dari measureText)
+function getItemRect(it, measuredWidth){
+  const w = Math.max(10, measuredWidth);
+  const h = it.h;
+  let x0 = it.x;
+  if (it.align === 'center') x0 = it.x - w/2;
+  else if (it.align === 'right') x0 = it.x - w;
+  const y0 = it.y - h + 6; // baseline -> approx box
+  return { x:x0, y:y0, w:w, h:h+8 };
+}
+
+// ====== Drag & Drop
+let active = null;      // {item, offX, offY}
+function pointerXY(e){
+  const rect = c.getBoundingClientRect();
+  const cx = (e.touches? e.touches[0].clientX : e.clientX) - rect.left;
+  const cy = (e.touches? e.touches[0].clientY : e.clientY) - rect.top;
+  // skala karena canvas ditampilkan 360×640 di CSS
+  const scaleX = c.width  / rect.width;
+  const scaleY = c.height / rect.height;
+  return { x: cx*scaleX, y: cy*scaleY };
+}
+
+function onDown(e){
+  const p = pointerXY(e);
+  // cari item teratas yang kena
+  for (let i = items.length-1; i >= 0; i--){
+    const it = items[i];
+    ctx.save(); ctx.font = it.font;
+    const w = ctx.measureText(it.getText()).width; ctx.restore();
+    const r = getItemRect(it, w);
+    if (p.x >= r.x && p.x <= r.x+r.w && p.y >= r.y && p.y <= r.y+r.h) {
+      active = { item: it, offX: it.x - p.x, offY: it.y - p.y };
+      e.preventDefault();
+      return;
+    }
+  }
+}
+
+function onMove(e){
+  if (!active) return;
+  const p = pointerXY(e);
+  active.item.x = Math.round(p.x + active.offX);
+  active.item.y = Math.round(p.y + active.offY);
+  render();
+}
+
+function onUp(){
+  if (active){ savePositions(); active = null; }
+}
+
+c.addEventListener('mousedown', onDown);
+c.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onUp);
+c.addEventListener('touchstart', onDown, {passive:false});
+c.addEventListener('touchmove', onMove, {passive:false});
+c.addEventListener('touchend', onUp);
+
+// ====== Keyboard (nudge & tools)
+let lastSelectedIdx = null;
+function selectNearest(px, py){
+  // pilih item terdekat ke pointer untuk nudge pertama kali
+  let best = 0, bestD = Infinity;
+  items.forEach((it, i)=>{
+    const dx = it.x - px, dy = it.y - py, d = dx*dx + dy*dy;
+    if (d < bestD){ bestD = d; best = i; }
+  });
+  lastSelectedIdx = best;
+}
+c.addEventListener('click', (e)=>{
+  const p = pointerXY(e);
+  selectNearest(p.x, p.y);
+});
+
+window.addEventListener('keydown', (e)=>{
+  // toggle guides
+  if (e.key.toLowerCase() === 'g'){ showGuides = !showGuides; render(); return;}
+  if (e.key.toLowerCase() === 'r'){ localStorage.removeItem(LS_KEY); render(); return;}
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+    if (lastSelectedIdx == null) { lastSelectedIdx = 0; }
+    const it = items[lastSelectedIdx];
+    if (!it) return;
+    const step = e.shiftKey ? 10 : 1;
+    if (e.key==='ArrowUp')    it.y -= step;
+    if (e.key==='ArrowDown')  it.y += step;
+    if (e.key==='ArrowLeft')  it.x -= step;
+    if (e.key==='ArrowRight') it.x += step;
+    savePositions(); render();
+  }
+});
 
 // ====== Export
 function savePNG(){
@@ -152,20 +260,30 @@ async function savePDF(){
   pdf.save(`flight-schedule-${Date.now()}.pdf`);
 }
 
-// ====== Inisialisasi
+// ====== Sidebar hooks
+document.getElementById('bgInput')?.addEventListener('change', async (e)=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = (ev)=>{ state.bgURL = ev.target.result; render(); };
+  r.readAsDataURL(f);
+});
+document.getElementById('renderBtn')?.addEventListener('click', render);
+document.getElementById('savePng')?.addEventListener('click', savePNG);
+document.getElementById('savePdf')?.addEventListener('click', savePDF);
+
 document.getElementById('addArrival')?.addEventListener('click', ()=>{
-  if(state.arrivals.length>=2) return;
+  if (state.arrivals.length>=2) return;
   state.arrivals.push({airline:'', flight:'', city:'', time:''});
-  rebuild();
+  render();
 });
 document.getElementById('addDeparture')?.addEventListener('click', ()=>{
-  if(state.departures.length>=2) return;
+  if (state.departures.length>=2) return;
   state.departures.push({airline:'', flight:'', city:'', time:''});
-  rebuild();
+  render();
 });
 
-// render pertama
+// ====== First render
 render().catch(err=>{
-  console.warn('Render gagal, cek path background:', err);
-  ctx.fillStyle = '#10a7b5'; ctx.fillRect(0,0,c.width,c.height);
+  console.warn('Render gagal:', err);
+  ctx.fillStyle='#10a7b5'; ctx.fillRect(0,0,c.width,c.height);
 });
