@@ -4,16 +4,35 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flight Schedule Poster – WA Status</title>
-  <link rel="stylesheet" href="jadwal.css?v=1" />
+  <link rel="stylesheet" href="jadwal.css?v=3" />
 
   <!-- Font Montserrat -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
 
   <style>
-    .small-divider{border:0;border-top:1px solid #22314f;margin:12px 0}
-    .hint{display:block;margin-top:4px;color:#89a3be;font-size:11px}
-    .small{font-size:11px;color:#89a3be}
+    :root { --bg:#0a1425; --text:#fff; }
+    body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); margin:0; display:flex; }
+    aside {
+      width: 340px; background: #111a2d; padding: 16px; overflow-y: auto;
+      border-right: 1px solid #1d2a44; box-sizing: border-box;
+    }
+    label { display:block; margin-top:10px; font-weight:600; font-size:14px; }
+    input[type="text"], input[type="file"], input[type="color"], input[type="range"] {
+      width:100%; margin-top:4px; padding:6px; border-radius:6px; border:none;
+      background:#1e2d4a; color:#fff; box-sizing:border-box;
+    }
+    h2 { margin:0 0 12px; font-size:18px; }
+    .btn {
+      background:#0ea5e9; border:none; color:white; padding:8px 12px; border-radius:6px;
+      cursor:pointer; margin-top:8px; width:100%;
+    }
+    .btn.secondary { background:#334155; }
+    .small { font-size:11px; color:#94a3b8; }
+    .small-divider { border:0; border-top:1px solid #22314f; margin:12px 0; }
+    main { flex:1; display:flex; align-items:center; justify-content:center; background:#0a1425; }
+    canvas { box-shadow:0 0 10px #000; max-width:100%; height:auto; background:#222; }
+    .section-title { margin-top:18px; font-weight:700; color:#38bdf8; font-size:14px; }
   </style>
 </head>
 <body>
@@ -46,25 +65,30 @@
     <hr class="small-divider">
 
     <label>Background</label>
-    <input type="file" id="bgInput" accept="image/*" />
-    <small class="hint">Default file: <code>bahan_flyer_bwx.png</code></small>
+    <select id="bgSelect">
+      <option value="bahan_flyer_bwx.png">Bahan Flyer BWX 1</option>
+      <option value="bahan_flyer_bwx2.png">Bahan Flyer BWX 2</option>
+      <option value="bahan_flyer_bwx3.png">Bahan Flyer BWX 3</option>
+    </select>
 
-    <div class="section-title">KEDATANGAN / ARRIVAL (maks 2 baris)</div>
+    <div class="section-title">KEDATANGAN / ARRIVAL</div>
     <div id="arrivals" class="airline-list"></div>
     <button class="btn" id="addArrival">+ Tambah Baris Kedatangan</button>
 
-    <div class="section-title">KEBERANGKATAN / DEPARTURE (maks 2 baris)</div>
+    <div class="section-title">KEBERANGKATAN / DEPARTURE</div>
     <div id="departures" class="airline-list"></div>
     <button class="btn" id="addDeparture">+ Tambah Baris Keberangkatan</button>
 
     <div class="stack">
-      <button class="btn" id="renderBtn">Render</button>
+      <button class="btn" id="renderBtn">Render Poster</button>
       <button class="btn secondary" id="savePng">Download PNG</button>
       <button class="btn secondary" id="savePdf">Download PDF</button>
     </div>
 
     <p class="small">
-      Tips: kanvas 1080×1920 (WA Status). Teks bisa <b>drag & drop</b>. Tekan <b>G</b> (guides) dan <b>R</b> (reset posisi).
+      Tips: kanvas 1080×1920 (WA Status).  
+      Teks bisa <b>drag & drop</b>. Tekan <b>G</b> (guides) dan <b>R</b> (reset posisi).  
+      Logo maskapai otomatis: Super Air Jet / Wings Air.
     </p>
   </aside>
 
@@ -72,6 +96,6 @@
     <canvas id="poster" width="1080" height="1920" aria-label="Preview poster"></canvas>
   </main>
 
-  <script src="jadwal.js?v=2"></script>
+  <script src="jadwal.js?v=3"></script>
 </body>
 </html>
