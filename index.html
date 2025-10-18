@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flight Schedule Poster – WA Status</title>
-  <link rel="stylesheet" href="jadwal.css?v=3" />
+  <link rel="stylesheet" href="jadwal.css?v=4" />
 
   <!-- Font Montserrat -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
     :root { --bg:#0a1425; --text:#fff; }
     body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); margin:0; display:flex; }
     aside {
-      width: 340px; background: #111a2d; padding: 16px; overflow-y: auto;
+      width: 360px; background: #111a2d; padding: 16px; overflow-y: auto;
       border-right: 1px solid #1d2a44; box-sizing: border-box;
     }
     label { display:block; margin-top:10px; font-weight:600; font-size:14px; }
@@ -34,14 +34,13 @@
     canvas { box-shadow:0 0 10px #000; max-width:100%; height:auto; background:#222; border-radius:8px; }
     .section-title { margin-top:18px; font-weight:700; color:#38bdf8; font-size:14px; }
 
-    /* form baris */
     .airline-row { display:grid; grid-template-columns:repeat(4,1fr) 36px; gap:4px; margin-bottom:6px; }
-    .airline-row input {
-      background:#1e2d4a; color:#fff; border:none; padding:4px 6px; border-radius:4px;
-    }
-    .airline-row button {
-      background:#ef4444; border:none; color:white; font-weight:700; border-radius:4px; cursor:pointer;
-    }
+    .airline-row input { background:#1e2d4a; color:#fff; border:none; padding:4px 6px; border-radius:4px; }
+    .airline-row button { background:#ef4444; border:none; color:white; font-weight:700; border-radius:4px; cursor:pointer; }
+
+    .toggle { display:flex; align-items:center; gap:8px; margin-top:12px; }
+    .toggle input { width:auto; }
+    .legend { font-size:12px; color:#94a3b8; margin-top:6px; }
   </style>
 </head>
 <body>
@@ -71,6 +70,12 @@
     <label>Warna Teks – Operating Hours</label>
     <input id="hoursColor" type="color" value="#ffffff">
 
+    <div class="toggle">
+      <input id="showIndicators" type="checkbox" checked>
+      <label for="showIndicators" style="margin:0">Tampilkan Indikator ID + Koordinat</label>
+    </div>
+    <div class="legend">Di kanvas akan terlihat kotak cyan & label seperti <code>arr_0_flight (x=420,y=650)</code>. Drag elemen untuk mengubah posisi.</div>
+
     <hr class="small-divider">
 
     <label>Background</label>
@@ -83,11 +88,11 @@
     <label>Atau unggah file background manual</label>
     <input type="file" id="bgInput" accept="image/*" />
 
-    <div class="section-title">KEDATANGAN / ARRIVAL</div>
+    <div class="section-title">KEDATANGAN / ARRIVAL (maks 3 baris)</div>
     <div id="arrivals" class="airline-list"></div>
     <button class="btn" id="addArrival">+ Tambah Baris Kedatangan</button>
 
-    <div class="section-title">KEBERANGKATAN / DEPARTURE</div>
+    <div class="section-title">KEBERANGKATAN / DEPARTURE (maks 3 baris)</div>
     <div id="departures" class="airline-list"></div>
     <button class="btn" id="addDeparture">+ Tambah Baris Keberangkatan</button>
 
@@ -101,7 +106,7 @@
 
     <p class="small">
       Tips: kanvas 1080×1920 (WA Status).  
-      Teks bisa <b>drag & drop</b>. Tekan <b>G</b> (guides) dan <b>R</b> (reset posisi).  
+      Teks & logo bisa <b>drag & drop</b>. Tekan <b>G</b> (toggle guides cepat) dan <b>R</b> (reset posisi).  
       Logo maskapai otomatis: Super Air Jet / Wings Air.
     </p>
   </aside>
@@ -110,6 +115,6 @@
     <canvas id="poster" width="1080" height="1920" aria-label="Preview poster"></canvas>
   </main>
 
-  <script src="jadwal.js?v=3"></script>
+  <script src="jadwal.js?v=4"></script>
 </body>
 </html>
