@@ -1,341 +1,223 @@
-// ====== Canvas
-const c = document.getElementById('poster');
-const ctx = c.getContext('2d');
+/******************************************************************
+ * jadwal.js — FINAL (v3)
+ * Fitur:
+ * ✅ Render background dinamis (bwx1, bwx2, bwx3)
+ * ✅ Logo maskapai otomatis (Super Air Jet / Wings Air)
+ * ✅ Text bisa digeser (drag & drop di canvas)
+ * ✅ Atur ukuran & warna font
+ * ✅ Font Montserrat
+ * ✅ Download PNG & PDF
+ ******************************************************************/
 
-// ====== Asset names (sesuaikan dengan file di repo)
-const ASSETS = {
-  bg: 'bahan_flyer_bwx.png',
-  super: 'super_air_jet_logo.png',
-  wings: 'wings_logo.png'
+// ===== Canvas & Context =====
+const canvas = document.getElementById("poster");
+const ctx = canvas.getContext("2d");
+
+// ===== Elemen UI =====
+const dateInput = document.getElementById("dateText");
+const hoursInput = document.getElementById("hoursText");
+const bgSelect = document.getElementById("bgSelect");
+
+const sizeDate = document.getElementById("sizeDate");
+const sizeRow = document.getElementById("sizeRow");
+const sizeHours = document.getElementById("sizeHours");
+const colorHours = document.getElementById("hoursColor");
+
+const sizeDateVal = document.getElementById("sizeDateVal");
+const sizeRowVal = document.getElementById("sizeRowVal");
+const sizeHoursVal = document.getElementById("sizeHoursVal");
+
+const arrivalsDiv = document.getElementById("arrivals");
+const departuresDiv = document.getElementById("departures");
+const addArrivalBtn = document.getElementById("addArrival");
+const addDepartureBtn = document.getElementById("addDeparture");
+
+const renderBtn = document.getElementById("renderBtn");
+const savePngBtn = document.getElementById("savePng");
+const savePdfBtn = document.getElementById("savePdf");
+
+// ===== Assets =====
+const airlineLogos = {
+  "super air jet": "super_air_jet_logo.png",
+  "wings air": "wings_logo.png"
 };
 
-// ====== Data (maks 2 baris/section)
-const state = {
-  bgURL: ASSETS.bg,
-  arrivals: [
-    { airline:'SUPER AIR JET', flight:'IU 370', city:'JAKARTA',  time:'10:15 WIB' },
-    { airline:'WINGS AIR',     flight:'IW 1880', city:'SURABAYA', time:'12.40 WIB' }
-  ],
-  departures: [
-    { airline:'SUPER AIR JET', flight:'IU 371', city:'JAKARTA',  time:'10:55 WIB' },
-    { airline:'WINGS AIR',     flight:'IW 1881', city:'SURABAYA', time:'13.00 WIB' }
-  ]
-};
+// ===== Data =====
+let arrivalRows = [];
+let departureRows = [];
 
-// ====== Default positions (layout 1080×1920)
-const POS_DEFAULT = {
-  date      : { x:540, y:560,  align:'center', color:'#ffffff', h:54 },
-
-  // ARR 1
-  arr_0_airline:{ x:110, y:650, align:'left',  color:'#ffffff', h:48, kind:'airline' },
-  arr_0_flight :{ x:420, y:650, align:'left',  color:'#ffffff', h:48 },
-  arr_0_city   :{ x:690, y:650, align:'left',  color:'#ffffff', h:48 },
-  arr_0_time   :{ x:990, y:650, align:'right', color:'#ffffff', h:48 },
-
-  // ARR 2
-  arr_1_airline:{ x:110, y:760, align:'left',  color:'#ffffff', h:48, kind:'airline' },
-  arr_1_flight :{ x:420, y:760, align:'left',  color:'#ffffff', h:48 },
-  arr_1_city   :{ x:690, y:760, align:'left',  color:'#ffffff', h:48 },
-  arr_1_time   :{ x:990, y:760, align:'right', color:'#ffffff', h:48 },
-
-  // DEP 1
-  dep_0_airline:{ x:110, y:1030, align:'left',  color:'#ffffff', h:48, kind:'airline' },
-  dep_0_flight :{ x:420, y:1030, align:'left',  color:'#ffffff', h:48 },
-  dep_0_city   :{ x:690, y:1030, align:'left',  color:'#ffffff', h:48 },
-  dep_0_time   :{ x:990, y:1030, align:'right', color:'#ffffff', h:48 },
-
-  // DEP 2
-  dep_1_airline:{ x:110, y:1140, align:'left',  color:'#ffffff', h:48, kind:'airline' },
-  dep_1_flight :{ x:420, y:1140, align:'left',  color:'#ffffff', h:48 },
-  dep_1_city   :{ x:690, y:1140, align:'left',  color:'#ffffff', h:48 },
-  dep_1_time   :{ x:990, y:1140, align:'right', color:'#ffffff', h:48 },
-
-  // Green pill text
-  hours     : { x:540, y:1372, align:'center', color:'#ffffff', h:50 }
-};
-
-// ====== Positions override & items
-const LS_KEY = 'fs_positions_logo_v1';
-let posOverrides = loadOverrides();
-let items = [];
-let showGuides = true;
-
-// ====== Size & style controls (including logo size)
-function sizes() {
-  const szDate  = +document.getElementById('sizeDate')?.value  || 48;
-  const szRow   = +document.getElementById('sizeRow')?.value   || 42;
-  const szHours = +document.getElementById('sizeHours')?.value || 44;
-  const logoH   = +document.getElementById('logoSize')?.value  || 56;
-  const hoursCol= document.getElementById('hoursColor')?.value || '#ffffff';
-  return {
-    dateFont : `900 ${szDate}px Montserrat, system-ui, sans-serif`,
-    rowFont  : `800 ${szRow}px Montserrat, system-ui, sans-serif`,
-    hoursFont: `900 ${szHours}px Montserrat, system-ui, sans-serif`,
-    hoursColor: hoursCol,
-    rowH   : Math.round(szRow * 1.2),
-    dateH : Math.round(szDate * 1.12),
-    hoursH: Math.round(szHours * 1.12),
-    logoH
+// ===== Utility: Tambah baris input maskapai =====
+function createRow(container, list) {
+  const row = document.createElement("div");
+  row.className = "row-item";
+  row.innerHTML = `
+    <input type="text" placeholder="Airline (Super Air Jet / Wings Air)" class="airline" />
+    <input type="text" placeholder="Flight No." class="flight" />
+    <input type="text" placeholder="From/To" class="route" />
+    <input type="text" placeholder="Time" class="time" />
+    <button class="del">✕</button>
+  `;
+  row.querySelector(".del").onclick = () => {
+    container.removeChild(row);
+    list.splice(list.indexOf(row), 1);
   };
+  container.appendChild(row);
+  list.push(row);
 }
 
-// live label values
-['sizeDate','sizeRow','sizeHours','logoSize'].forEach(id=>{
-  const el = document.getElementById(id);
-  const out = document.getElementById(id+'Val');
-  if(el && out){ el.addEventListener('input', ()=>{ out.textContent = el.value; render(); }); }
+// ===== Event Tambah Baris =====
+addArrivalBtn.onclick = () => createRow(arrivalsDiv, arrivalRows);
+addDepartureBtn.onclick = () => createRow(departuresDiv, departureRows);
+
+// ===== Ukuran Font Real-time =====
+[sizeDate, sizeRow, sizeHours].forEach(slider => {
+  slider.addEventListener("input", () => {
+    sizeDateVal.textContent = sizeDate.value;
+    sizeRowVal.textContent = sizeRow.value;
+    sizeHoursVal.textContent = sizeHours.value;
+    renderPoster();
+  });
 });
-document.getElementById('hoursColor')?.addEventListener('input', render);
 
-// ====== Build items (once)
-function buildItems(){
-  items = [];
-
-  items.push({
-    id:'date',
-    kind:'text',
-    getText: ()=> (document.getElementById('dateText')?.value || 'MINGGU, 19 OKTOBER 2025').toUpperCase(),
-  });
-
-  const keys = ['airline','flight','city','time'];
-  for(let i=0;i<2;i++){
-    keys.forEach(k=>{
-      items.push({
-        id:`arr_${i}_${k}`,
-        kind: k==='airline' ? 'airline' : 'text',
-        getText: ()=> (state.arrivals[i]?.[k] || '').toUpperCase(),
-      });
-    });
-  }
-  for(let i=0;i<2;i++){
-    keys.forEach(k=>{
-      items.push({
-        id:`dep_${i}_${k}`,
-        kind: k==='airline' ? 'airline' : 'text',
-        getText: ()=> (state.departures[i]?.[k] || '').toUpperCase(),
-      });
-    });
-  }
-
-  items.push({
-    id:'hours',
-    kind:'text',
-    getText: ()=> (document.getElementById('hoursText')?.value || 'Operating Hours 06.00 - 18.00 WIB')
+// ===== Background Loader =====
+function loadImage(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => resolve(img);
   });
 }
-buildItems();
 
-// ====== Images cache
-const imgCache = {};
-function loadImage(src){
-  return new Promise((res, rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
-}
-async function getImg(name){
-  if(!name) return null;
-  if(!imgCache[name]) imgCache[name] = await loadImage(name);
-  return imgCache[name];
-}
-
-// airline name → logo file
-function airlineLogoFor(text){
-  const s = (text||'').toLowerCase();
-  if(s.includes('super')) return ASSETS.super;
-  if(s.includes('wings')) return ASSETS.wings;
-  return null; // fallback to text
-}
-
-// ====== Positions helpers
-function loadOverrides(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch{ return {}; } }
-function saveOverrides(){ localStorage.setItem(LS_KEY, JSON.stringify(posOverrides)); }
-
-function getPos(id){
-  const base = POS_DEFAULT[id];
-  const ov = posOverrides[id] || {};
-  const S = sizes();
-  // choose font/height & color
-  let font = S.rowFont, h = S.rowH, color = base.color;
-  if(id==='date'){ font = S.dateFont; h = S.dateH; }
-  if(id==='hours'){ font = S.hoursFont; h = S.hoursH; color = document.getElementById('hoursColor')?.value || '#ffffff'; }
-  // for airline logo "h" acts as text line height; the real logo height uses S.logoH
-  return { x: ov.x ?? base.x, y: ov.y ?? base.y, align: base.align, color, font, h };
-}
-
-// Rect for hit-test (text or logo)
-async function getRectForItem(it){
-  const p = getPos(it.id);
-  if(it.kind==='airline'){
-    const logoFile = airlineLogoFor(it.getText());
-    const img = logoFile ? await getImg(logoFile) : null;
-    const H = sizes().logoH;
-    const W = img ? (H * img.width / img.height) : 120; // approx width if no img
-    let x0 = p.x;
-    if(p.align==='center') x0 -= W/2;
-    else if(p.align==='right') x0 -= W;
-    const y0 = p.y - H/2; // center align vertically to the row baseline
-    return { x:x0, y:y0, w:W, h:H };
-  } else {
-    ctx.save(); ctx.font = p.font;
-    const w = Math.max(10, ctx.measureText(it.getText()).width);
-    ctx.restore();
-    let x0 = p.x;
-    if(p.align==='center') x0 -= w/2;
-    else if(p.align==='right') x0 -= w;
-    const y0 = p.y - p.h + 6;
-    return { x:x0, y:y0, w, h:p.h+8 };
-  }
-}
-
-// ====== Render
-async function render(){
-  const bg = await getImg(state.bgURL);
-  ctx.clearRect(0,0,c.width,c.height);
-  ctx.drawImage(bg, 0, 0, c.width, c.height);
-
-  for (let i=0;i<items.length;i++){
-    const it = items[i];
-    const p = getPos(it.id);
-
-    if(it.kind==='airline'){
-      const logoFile = airlineLogoFor(it.getText());
-      const img = logoFile ? await getImg(logoFile) : null;
-      if(img){
-        const H = sizes().logoH;
-        const W = H * img.width / img.height;
-        let drawX = p.x, drawY = p.y - H/2;
-        if(p.align==='center') drawX -= W/2;
-        else if(p.align==='right') drawX -= W;
-        ctx.drawImage(img, drawX, drawY, W, H);
-        if(showGuides){
-          ctx.strokeStyle = '#00ffff88'; ctx.lineWidth = 2;
-          ctx.strokeRect(drawX, drawY, W, H);
-          ctx.fillStyle='#00ffff'; ctx.font='700 18px Montserrat, system-ui';
-          ctx.textAlign='left'; ctx.fillText(`#${i+1}`, drawX+4, drawY+18);
-        }
-        continue;
-      }
-      // fallback to text if logo not found
-    }
-
-    // draw as text
-    const text = it.getText();
-    ctx.save();
-    ctx.font = p.font;
-    ctx.fillStyle = p.color;
-    ctx.textAlign = p.align;
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText(text, p.x, p.y);
-    if(showGuides){
-      const r = await getRectForItem(it);
-      ctx.lineWidth = 2; ctx.strokeStyle = '#00ffff88';
-      ctx.strokeRect(r.x, r.y, r.w, r.h);
-      ctx.fillStyle='#00ffff'; ctx.font='700 18px Montserrat, system-ui';
-      ctx.textAlign='left'; ctx.fillText(`#${i+1}`, r.x+4, r.y+18);
-    }
-    ctx.restore();
-  }
-}
-
-// ====== Drag & drop (works for logo & text)
+// ===== Drag Handling =====
 let dragging = null;
-function pointer(e){
-  const r = c.getBoundingClientRect();
-  const cx = (e.touches? e.touches[0].clientX : e.clientX) - r.left;
-  const cy = (e.touches? e.touches[0].clientY : e.clientY) - r.top;
-  const sx = c.width/r.width, sy = c.height/r.height;
-  return { x: cx*sx, y: cy*sy };
-}
-async function onDown(e){
-  const p = pointer(e);
-  // check from topmost
-  for(let i=items.length-1;i>=0;i--){
-    const it = items[i];
-    const r = await getRectForItem(it);
-    if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
-      const pos = getPos(it.id);
-      dragging = { id: it.id, offX: pos.x - p.x, offY: pos.y - p.y };
-      e.preventDefault(); return;
+let dragOffset = { x: 0, y: 0 };
+
+const textObjects = {
+  date: { x: 540, y: 640, text: () => dateInput.value, size: () => +sizeDate.value, color: "#fff" },
+  hours: { x: 540, y: 1700, text: () => hoursInput.value, size: () => +sizeHours.value, color: () => colorHours.value }
+};
+
+canvas.addEventListener("mousedown", e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  for (const key in textObjects) {
+    const obj = textObjects[key];
+    ctx.font = `${obj.size()}px Montserrat`;
+    const width = ctx.measureText(obj.text()).width;
+    if (x > obj.x - width/2 && x < obj.x + width/2 && y > obj.y - obj.size() && y < obj.y) {
+      dragging = key;
+      dragOffset.x = x - obj.x;
+      dragOffset.y = y - obj.y;
+      break;
     }
   }
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  textObjects[dragging].x = e.clientX - rect.left - dragOffset.x;
+  textObjects[dragging].y = e.clientY - rect.top - dragOffset.y;
+  renderPoster();
+});
+
+canvas.addEventListener("mouseup", () => dragging = null);
+canvas.addEventListener("mouseleave", () => dragging = null);
+
+// ===== Render Poster =====
+async function renderPoster() {
+  const bg = await loadImage(bgSelect.value);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+
+  // --- Hari & Tanggal ---
+  const date = textObjects.date;
+  ctx.font = `${date.size()}px Montserrat`;
+  ctx.fillStyle = date.color;
+  ctx.textAlign = "center";
+  ctx.fillText(date.text(), date.x, date.y);
+
+  // --- Jadwal Kedatangan & Keberangkatan ---
+  const baseYArrival = 840;
+  const baseYDeparture = 1220;
+  const rowGap = 90;
+
+  const drawFlightRow = async (row, index, type) => {
+    const yBase = type === "arrival" ? baseYArrival : baseYDeparture;
+    const airline = row.querySelector(".airline").value.trim();
+    const flight = row.querySelector(".flight").value.trim();
+    const route = row.querySelector(".route").value.trim();
+    const time = row.querySelector(".time").value.trim();
+    const y = yBase + index * rowGap;
+
+    // Logo jika ada
+    let logoPath = null;
+    for (const key in airlineLogos) {
+      if (airline.toLowerCase().includes(key)) logoPath = airlineLogos[key];
+    }
+
+    if (logoPath) {
+      const logo = await loadImage(logoPath);
+      const logoW = 160, logoH = 60;
+      ctx.drawImage(logo, 180 - logoW/2, y - logoH/2, logoW, logoH);
+    } else {
+      ctx.font = `${sizeRow.value}px Montserrat`;
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.fillText(airline, 100, y);
+    }
+
+    ctx.font = `${sizeRow.value}px Montserrat`;
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.fillText(flight, 440, y);
+    ctx.fillText(route, 720, y);
+    ctx.fillText(time, 940, y);
+  };
+
+  for (let i = 0; i < arrivalRows.length; i++) await drawFlightRow(arrivalRows[i], i, "arrival");
+  for (let i = 0; i < departureRows.length; i++) await drawFlightRow(departureRows[i], i, "departure");
+
+  // --- Operating Hours ---
+  const hours = textObjects.hours;
+  ctx.font = `${hours.size()}px Montserrat`;
+  ctx.fillStyle = typeof hours.color === "function" ? hours.color() : hours.color;
+  ctx.textAlign = "center";
+  ctx.fillText(hours.text(), hours.x, hours.y);
 }
-function onMove(e){
-  if(!dragging) return;
-  const p = pointer(e);
-  posOverrides[dragging.id] = { x: Math.round(p.x + dragging.offX), y: Math.round(p.y + dragging.offY) };
-  saveOverrides(); render();
-}
-function onUp(){ dragging = null; }
 
-c.addEventListener('mousedown', onDown);
-c.addEventListener('mousemove', onMove);
-window.addEventListener('mouseup', onUp);
-c.addEventListener('touchstart', onDown, {passive:false});
-c.addEventListener('touchmove', onMove, {passive:false});
-c.addEventListener('touchend', onUp);
+// ===== Render awal =====
+renderBtn.onclick = renderPoster;
+bgSelect.onchange = renderPoster;
 
-// ====== Keyboard tools
-window.addEventListener('keydown', (e)=>{
-  if(e.key.toLowerCase()==='g'){ showGuides=!showGuides; render(); }
-  if(e.key.toLowerCase()==='r'){ localStorage.removeItem(LS_KEY); posOverrides={}; render(); }
-});
+// ===== Download PNG =====
+savePngBtn.onclick = () => {
+  const a = document.createElement("a");
+  a.download = "flight-schedule.png";
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+};
 
-// ====== Sidebar hooks
-document.getElementById('bgInput')?.addEventListener('change', (e)=>{
-  const f = e.target.files?.[0]; if(!f) return;
-  const r=new FileReader(); r.onload=ev=>{ state.bgURL=ev.target.result; render(); }; r.readAsDataURL(f);
-});
-document.getElementById('renderBtn')?.addEventListener('click', render);
-document.getElementById('savePng')?.addEventListener('click', ()=>{
-  const a=document.createElement('a'); a.download=`flight-schedule-${Date.now()}.png`; a.href=c.toDataURL('image/png'); a.click();
-});
-document.getElementById('savePdf')?.addEventListener('click', async ()=>{
-  if(!window.jspdf){
-    await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'; s.onload=res; s.onerror=rej; document.body.appendChild(s); });
-  }
+// ===== Download PDF =====
+savePdfBtn.onclick = async () => {
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({orientation:'p', unit:'px', format:[1080,1920]});
-  pdf.addImage(c.toDataURL('image/jpeg',0.96),'JPEG',0,0,1080,1920);
-  pdf.save(`flight-schedule-${Date.now()}.pdf`);
-});
-
-// ====== Simple rows editor
-function rowUI(containerId, list){
-  const el = document.getElementById(containerId);
-  if(!el) return;
-  el.innerHTML='';
-  list.slice(0,2).forEach((row, i)=>{
-    const wrap = document.createElement('div');
-    wrap.className = 'airline-row';
-    wrap.innerHTML = `
-      <input placeholder="Airlines (Super Air Jet / Wings Air)" value="${row.airline||''}" data-k="airline">
-      <input placeholder="Flight No" value="${row.flight||''}" data-k="flight">
-      <input placeholder="Origin/Dest" value="${row.city||''}" data-k="city">
-      <input placeholder="Time" value="${row.time||''}" data-k="time">
-      <button type="button" title="Hapus">✕</button>
-    `;
-    wrap.querySelectorAll('[data-k]').forEach(inp=>{
-      const k = inp.dataset.k;
-      inp.oninput = ()=>{ list[i][k] = inp.value; render(); };
-    });
-    wrap.querySelector('button').onclick = ()=>{ list.splice(i,1); rowUI(containerId, list); render(); };
-    el.appendChild(wrap);
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "px",
+    format: [1080, 1920]
   });
-}
-rowUI('arrivals', state.arrivals);
-rowUI('departures', state.departures);
+  const imgData = canvas.toDataURL("image/png");
+  pdf.addImage(imgData, "PNG", 0, 0, 1080, 1920);
+  pdf.save("flight-schedule.pdf");
+};
 
-document.getElementById('addArrival')?.addEventListener('click', ()=>{
-  if(state.arrivals.length>=2) return;
-  state.arrivals.push({airline:'',flight:'',city:'',time:''});
-  rowUI('arrivals', state.arrivals); render();
-});
-document.getElementById('addDeparture')?.addEventListener('click', ()=>{
-  if(state.departures.length>=2) return;
-  state.departures.push({airline:'',flight:'',city:'',time:''});
-  rowUI('departures', state.departures); render();
-});
-
-// ====== First render
-render().catch(err=>{
-  console.warn('Render gagal:', err);
-  ctx.fillStyle='#10a7b5'; ctx.fillRect(0,0,c.width,c.height);
+// ===== Shortcut: G (Guides) / R (Reset) =====
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "r") {
+    textObjects.date.x = 540; textObjects.date.y = 640;
+    textObjects.hours.x = 540; textObjects.hours.y = 1700;
+    renderPoster();
+  }
 });
