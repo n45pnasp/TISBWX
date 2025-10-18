@@ -4,12 +4,13 @@ const ctx = c.getContext('2d');
 
 // ====== Default aset (simak nama file)
 const ASSETS = {
-  bg: 'bahan Flyer BWX.png',
-  logoLeft: 'Injourney Airports (Putih).png',
-  logoRight: '(BWX) Banyuwangi.png',
-  wings: 'wings logo.png',
-  saj: 'super air jet logo.png'
+  bg: 'bahan_flyer_bwx.png',
+  logoLeft: 'injourney_airports_putih.png',
+  logoRight: 'bwx_banyuwangi.png',
+  wings: 'wings_logo.png',
+  saj: 'super_air_jet_logo.png'
 };
+
 
 // ====== State awal
 const state = {
