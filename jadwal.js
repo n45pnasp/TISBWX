@@ -1,4 +1,4 @@
-/******************************************************************
+/*****************************************************************
  * jadwal.js — v4
  * - Indikator ID + koordinat di kanvas (toggle dari UI)
  * - Maks 3 baris untuk Kedatangan & Keberangkatan
