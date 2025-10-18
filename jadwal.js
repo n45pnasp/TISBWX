@@ -2,8 +2,12 @@
 const c = document.getElementById('poster');
 const ctx = c.getContext('2d');
 
-// ====== Background layout baru
-const ASSETS = { bg: 'bahan_flyer_bwx.png' };
+// ====== Asset names (sesuaikan dengan file di repo)
+const ASSETS = {
+  bg: 'bahan_flyer_bwx.png',
+  super: 'super_air_jet_logo.png',
+  wings: 'wings_logo.png'
+};
 
 // ====== Data (maks 2 baris/section)
 const state = {
@@ -18,44 +22,51 @@ const state = {
   ]
 };
 
-// ====== Posisi default (disesuaikan ke layout 1080×1920)
+// ====== Default positions (layout 1080×1920)
 const POS_DEFAULT = {
   date      : { x:540, y:560,  align:'center', color:'#ffffff', h:54 },
-  arr_0_airline:{ x:110, y:650, align:'left',  color:'#ffffff', h:48 },
+
+  // ARR 1
+  arr_0_airline:{ x:110, y:650, align:'left',  color:'#ffffff', h:48, kind:'airline' },
   arr_0_flight :{ x:420, y:650, align:'left',  color:'#ffffff', h:48 },
   arr_0_city   :{ x:690, y:650, align:'left',  color:'#ffffff', h:48 },
   arr_0_time   :{ x:990, y:650, align:'right', color:'#ffffff', h:48 },
 
-  arr_1_airline:{ x:110, y:760, align:'left',  color:'#ffffff', h:48 },
+  // ARR 2
+  arr_1_airline:{ x:110, y:760, align:'left',  color:'#ffffff', h:48, kind:'airline' },
   arr_1_flight :{ x:420, y:760, align:'left',  color:'#ffffff', h:48 },
   arr_1_city   :{ x:690, y:760, align:'left',  color:'#ffffff', h:48 },
   arr_1_time   :{ x:990, y:760, align:'right', color:'#ffffff', h:48 },
 
-  dep_0_airline:{ x:110, y:1030, align:'left',  color:'#ffffff', h:48 },
+  // DEP 1
+  dep_0_airline:{ x:110, y:1030, align:'left',  color:'#ffffff', h:48, kind:'airline' },
   dep_0_flight :{ x:420, y:1030, align:'left',  color:'#ffffff', h:48 },
   dep_0_city   :{ x:690, y:1030, align:'left',  color:'#ffffff', h:48 },
   dep_0_time   :{ x:990, y:1030, align:'right', color:'#ffffff', h:48 },
 
-  dep_1_airline:{ x:110, y:1140, align:'left',  color:'#ffffff', h:48 },
+  // DEP 2
+  dep_1_airline:{ x:110, y:1140, align:'left',  color:'#ffffff', h:48, kind:'airline' },
   dep_1_flight :{ x:420, y:1140, align:'left',  color:'#ffffff', h:48 },
   dep_1_city   :{ x:690, y:1140, align:'left',  color:'#ffffff', h:48 },
   dep_1_time   :{ x:990, y:1140, align:'right', color:'#ffffff', h:48 },
 
-  hours     : { x:540, y:1372, align:'center', color:'#ffffff', h:50 } // default putih
+  // Green pill text
+  hours     : { x:540, y:1372, align:'center', color:'#ffffff', h:50 }
 };
 
-// ====== Items & posisi override
-const LS_KEY = 'fs_positions_v4';
-let items = [];
+// ====== Positions override & items
+const LS_KEY = 'fs_positions_logo_v1';
 let posOverrides = loadOverrides();
+let items = [];
 let showGuides = true;
 
-// ====== Ukuran & warna dinamis dari UI
+// ====== Size & style controls (including logo size)
 function sizes() {
   const szDate  = +document.getElementById('sizeDate')?.value  || 48;
   const szRow   = +document.getElementById('sizeRow')?.value   || 42;
   const szHours = +document.getElementById('sizeHours')?.value || 44;
-  const hoursCol = document.getElementById('hoursColor')?.value || '#ffffff';
+  const logoH   = +document.getElementById('logoSize')?.value  || 56;
+  const hoursCol= document.getElementById('hoursColor')?.value || '#ffffff';
   return {
     dateFont : `900 ${szDate}px Montserrat, system-ui, sans-serif`,
     rowFont  : `800 ${szRow}px Montserrat, system-ui, sans-serif`,
@@ -64,23 +75,25 @@ function sizes() {
     rowH   : Math.round(szRow * 1.2),
     dateH : Math.round(szDate * 1.12),
     hoursH: Math.round(szHours * 1.12),
+    logoH
   };
 }
 
-// tampilkan nilai range di label kecil
-['sizeDate','sizeRow','sizeHours'].forEach(id=>{
+// live label values
+['sizeDate','sizeRow','sizeHours','logoSize'].forEach(id=>{
   const el = document.getElementById(id);
   const out = document.getElementById(id+'Val');
   if(el && out){ el.addEventListener('input', ()=>{ out.textContent = el.value; render(); }); }
 });
 document.getElementById('hoursColor')?.addEventListener('input', render);
 
-// ====== build items sekali
+// ====== Build items (once)
 function buildItems(){
   items = [];
 
   items.push({
     id:'date',
+    kind:'text',
     getText: ()=> (document.getElementById('dateText')?.value || 'MINGGU, 19 OKTOBER 2025').toUpperCase(),
   });
 
@@ -89,6 +102,7 @@ function buildItems(){
     keys.forEach(k=>{
       items.push({
         id:`arr_${i}_${k}`,
+        kind: k==='airline' ? 'airline' : 'text',
         getText: ()=> (state.arrivals[i]?.[k] || '').toUpperCase(),
       });
     });
@@ -97,6 +111,7 @@ function buildItems(){
     keys.forEach(k=>{
       items.push({
         id:`dep_${i}_${k}`,
+        kind: k==='airline' ? 'airline' : 'text',
         getText: ()=> (state.departures[i]?.[k] || '').toUpperCase(),
       });
     });
@@ -104,77 +119,123 @@ function buildItems(){
 
   items.push({
     id:'hours',
+    kind:'text',
     getText: ()=> (document.getElementById('hoursText')?.value || 'Operating Hours 06.00 - 18.00 WIB')
   });
 }
 buildItems();
 
-// ====== helpers load/simpan posisi
+// ====== Images cache
+const imgCache = {};
+function loadImage(src){
+  return new Promise((res, rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+}
+async function getImg(name){
+  if(!name) return null;
+  if(!imgCache[name]) imgCache[name] = await loadImage(name);
+  return imgCache[name];
+}
+
+// airline name → logo file
+function airlineLogoFor(text){
+  const s = (text||'').toLowerCase();
+  if(s.includes('super')) return ASSETS.super;
+  if(s.includes('wings')) return ASSETS.wings;
+  return null; // fallback to text
+}
+
+// ====== Positions helpers
 function loadOverrides(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch{ return {}; } }
 function saveOverrides(){ localStorage.setItem(LS_KEY, JSON.stringify(posOverrides)); }
 
 function getPos(id){
   const base = POS_DEFAULT[id];
-  const ov = posOverrides[id];
+  const ov = posOverrides[id] || {};
   const S = sizes();
-  // pilih font/height per elemen
+  // choose font/height & color
   let font = S.rowFont, h = S.rowH, color = base.color;
   if(id==='date'){ font = S.dateFont; h = S.dateH; }
-  if(id==='hours'){ font = S.hoursFont; h = S.hoursH; color = S.hoursColor; }
-  return {
-    x: ov?.x ?? base.x,
-    y: ov?.y ?? base.y,
-    align: base.align,
-    color,
-    font,
-    h
-  };
+  if(id==='hours'){ font = S.hoursFont; h = S.hoursH; color = document.getElementById('hoursColor')?.value || '#ffffff'; }
+  // for airline logo "h" acts as text line height; the real logo height uses S.logoH
+  return { x: ov.x ?? base.x, y: ov.y ?? base.y, align: base.align, color, font, h };
+}
+
+// Rect for hit-test (text or logo)
+async function getRectForItem(it){
+  const p = getPos(it.id);
+  if(it.kind==='airline'){
+    const logoFile = airlineLogoFor(it.getText());
+    const img = logoFile ? await getImg(logoFile) : null;
+    const H = sizes().logoH;
+    const W = img ? (H * img.width / img.height) : 120; // approx width if no img
+    let x0 = p.x;
+    if(p.align==='center') x0 -= W/2;
+    else if(p.align==='right') x0 -= W;
+    const y0 = p.y - H/2; // center align vertically to the row baseline
+    return { x:x0, y:y0, w:W, h:H };
+  } else {
+    ctx.save(); ctx.font = p.font;
+    const w = Math.max(10, ctx.measureText(it.getText()).width);
+    ctx.restore();
+    let x0 = p.x;
+    if(p.align==='center') x0 -= w/2;
+    else if(p.align==='right') x0 -= w;
+    const y0 = p.y - p.h + 6;
+    return { x:x0, y:y0, w, h:p.h+8 };
+  }
 }
 
 // ====== Render
-function loadImage(src){
-  return new Promise((res, rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
-}
 async function render(){
-  const bg = await loadImage(state.bgURL);
+  const bg = await getImg(state.bgURL);
   ctx.clearRect(0,0,c.width,c.height);
   ctx.drawImage(bg, 0, 0, c.width, c.height);
 
-  items.forEach((it, idx)=>{
+  for (let i=0;i<items.length;i++){
+    const it = items[i];
     const p = getPos(it.id);
-    const text = it.getText();
 
+    if(it.kind==='airline'){
+      const logoFile = airlineLogoFor(it.getText());
+      const img = logoFile ? await getImg(logoFile) : null;
+      if(img){
+        const H = sizes().logoH;
+        const W = H * img.width / img.height;
+        let drawX = p.x, drawY = p.y - H/2;
+        if(p.align==='center') drawX -= W/2;
+        else if(p.align==='right') drawX -= W;
+        ctx.drawImage(img, drawX, drawY, W, H);
+        if(showGuides){
+          ctx.strokeStyle = '#00ffff88'; ctx.lineWidth = 2;
+          ctx.strokeRect(drawX, drawY, W, H);
+          ctx.fillStyle='#00ffff'; ctx.font='700 18px Montserrat, system-ui';
+          ctx.textAlign='left'; ctx.fillText(`#${i+1}`, drawX+4, drawY+18);
+        }
+        continue;
+      }
+      // fallback to text if logo not found
+    }
+
+    // draw as text
+    const text = it.getText();
     ctx.save();
     ctx.font = p.font;
     ctx.fillStyle = p.color;
     ctx.textAlign = p.align;
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(text, p.x, p.y);
-
     if(showGuides){
-      const r = getRectForItem(it, text);
+      const r = await getRectForItem(it);
       ctx.lineWidth = 2; ctx.strokeStyle = '#00ffff88';
       ctx.strokeRect(r.x, r.y, r.w, r.h);
       ctx.fillStyle='#00ffff'; ctx.font='700 18px Montserrat, system-ui';
-      ctx.textAlign='left'; ctx.fillText(`#${idx+1}`, r.x+4, r.y+18);
+      ctx.textAlign='left'; ctx.fillText(`#${i+1}`, r.x+4, r.y+18);
     }
     ctx.restore();
-  });
+  }
 }
 
-function getRectForItem(it, text){
-  const p = getPos(it.id);
-  ctx.save(); ctx.font = p.font;
-  const w = Math.max(10, ctx.measureText(text).width);
-  ctx.restore();
-  let x0 = p.x;
-  if(p.align==='center') x0 -= w/2;
-  else if(p.align==='right') x0 -= w;
-  const y0 = p.y - p.h + 6;
-  return { x:x0, y:y0, w, h:p.h+8 };
-}
-
-// ====== Drag & drop
+// ====== Drag & drop (works for logo & text)
 let dragging = null;
 function pointer(e){
   const r = c.getBoundingClientRect();
@@ -183,11 +244,12 @@ function pointer(e){
   const sx = c.width/r.width, sy = c.height/r.height;
   return { x: cx*sx, y: cy*sy };
 }
-function onDown(e){
+async function onDown(e){
   const p = pointer(e);
+  // check from topmost
   for(let i=items.length-1;i>=0;i--){
     const it = items[i];
-    const r = getRectForItem(it, it.getText());
+    const r = await getRectForItem(it);
     if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
       const pos = getPos(it.id);
       dragging = { id: it.id, offX: pos.x - p.x, offY: pos.y - p.y };
@@ -235,7 +297,7 @@ document.getElementById('savePdf')?.addEventListener('click', async ()=>{
   pdf.save(`flight-schedule-${Date.now()}.pdf`);
 });
 
-// ====== Build rows editor
+// ====== Simple rows editor
 function rowUI(containerId, list){
   const el = document.getElementById(containerId);
   if(!el) return;
@@ -244,7 +306,7 @@ function rowUI(containerId, list){
     const wrap = document.createElement('div');
     wrap.className = 'airline-row';
     wrap.innerHTML = `
-      <input placeholder="Airlines" value="${row.airline||''}" data-k="airline">
+      <input placeholder="Airlines (Super Air Jet / Wings Air)" value="${row.airline||''}" data-k="airline">
       <input placeholder="Flight No" value="${row.flight||''}" data-k="flight">
       <input placeholder="Origin/Dest" value="${row.city||''}" data-k="city">
       <input placeholder="Time" value="${row.time||''}" data-k="time">
