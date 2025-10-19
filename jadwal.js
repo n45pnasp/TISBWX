@@ -1,5 +1,5 @@
 /******************************************************************
- * jadwal.js — v11 (final)
+ * jadwal.js — v12 (logo per baris + slider & +/-)
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -76,7 +76,7 @@ const state = {
 const POS_DEFAULT = {
   date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
-  // ARR (y: 689, 763, 852) – logo sedikit naik agar sejajar
+  // ARR (y: 689, 763, 852)
   arr_0_airline:{ x:57,  y:676, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   arr_0_flight :{ x:366, y:689, align:'left',  color:'#ffffff', h:40 },
   arr_0_city   :{ x:630, y:689, align:'left',  color:'#ffffff', h:40 },
@@ -113,7 +113,7 @@ const POS_DEFAULT = {
 
 // ===== Items & overrides
 const LS_POS   = 'fs_positions_v12';   // posisi elemen
-const LS_LOGO  = 'fs_logo_scales_v2';  // skala logo per item
+const LS_LOGO  = 'fs_logo_scales_v3';  // skala logo per item (versi baru)
 
 let items = [];
 let posOverrides   = loadJSON(LS_POS,  {});
@@ -151,6 +151,7 @@ function sizes(){
   };
 }
 function getLogoScale(id){ return Math.max(0.4, Math.min(2.5, +(logoScaleMap[id] ?? 1.0))); }
+function setLogoScale(id, val){ logoScaleMap[id] = Math.max(0.4, Math.min(2.5, +val)); saveJSON(LS_LOGO, logoScaleMap); }
 
 function buildItems(){
   items=[];
@@ -186,15 +187,31 @@ const IMG={};
 function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 async function getImg(src){ if(!src) return null; if(!IMG[src]) IMG[src]=await loadImage(src); return IMG[src]; }
 
-// ===== UI rows (maks 3) – Origin/Dest maxlength=10
+// ===== UI rows (maks 3) – Origin/Dest maxlength=10 + kontrol ukuran logo
 const arrivalsWrap   = document.getElementById('arrivals');
 const departuresWrap = document.getElementById('departures');
+
+function miniLogoControls(id){
+  const scale = getLogoScale(id).toFixed(2);
+  return `
+    <div class="logo-controls" style="grid-column: 1 / -1; display:flex; align-items:center; gap:8px; margin-top:4px;">
+      <small style="opacity:.8;">Logo Size:</small>
+      <button type="button" data-act="minus" data-id="${id}" style="padding:4px 8px;border-radius:6px;border:none;background:#334155;color:#fff;font-weight:800;">−</button>
+      <input type="range" min="0.4" max="2.5" step="0.05" value="${scale}" data-act="slider" data-id="${id}" style="flex:1;">
+      <button type="button" data-act="plus" data-id="${id}" style="padding:4px 8px;border-radius:6px;border:none;background:#334155;color:#fff;font-weight:800;">+</button>
+      <span data-act="read" data-id="${id}" style="min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">${scale}</span>
+    </div>
+  `;
+}
 
 function renderRowEditors(){
   const build = (wrap, listName) => {
     const data = state[listName];
     wrap.innerHTML='';
     data.forEach((row, idx)=>{
+      const isArr = (listName==='arrivals');
+      const airlineId = `${isArr ? 'arr':'dep'}_${idx}_airline`;
+
       const box=document.createElement('div');
       box.className='airline-row';
       box.innerHTML=`
@@ -203,14 +220,55 @@ function renderRowEditors(){
         <input placeholder="Origin/Dest" maxlength="10" value="${row.city||''}" data-k="city">
         <input placeholder="Time" value="${row.time||''}" data-k="time">
         <button type="button" title="Hapus">✕</button>
+        ${miniLogoControls(airlineId)}
       `;
+
+      // input teks
       box.querySelectorAll('[data-k]').forEach(inp=>{
         const k=inp.dataset.k;
         inp.oninput=()=>{ state[listName][idx][k]=inp.value; render(); };
       });
-      box.querySelector('button').onclick=()=>{ 
+
+      // hapus baris
+      box.querySelector('button[title="Hapus"]').onclick=()=>{ 
         state[listName].splice(idx,1); buildItems(); renderRowEditors(); render(); 
       };
+
+      // kontrol logo (slider & +/-)
+      box.querySelectorAll('[data-id="'+airlineId+'"]').forEach(ctrl=>{
+        const act = ctrl.getAttribute('data-act');
+        if(act==='slider'){
+          ctrl.addEventListener('input', ()=>{
+            setLogoScale(airlineId, ctrl.value);
+            const read = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
+            if(read) read.textContent = (+ctrl.value).toFixed(2);
+            render();
+          });
+        }else if(act==='minus'){
+          ctrl.addEventListener('click', ()=>{
+            const cur = getLogoScale(airlineId);
+            const next = Math.max(0.4, +(cur - 0.05).toFixed(2));
+            setLogoScale(airlineId, next);
+            const slider = box.querySelector('[data-act="slider"][data-id="'+airlineId+'"]');
+            const read   = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
+            if(slider) slider.value = next;
+            if(read)   read.textContent = next.toFixed(2);
+            render();
+          });
+        }else if(act==='plus'){
+          ctrl.addEventListener('click', ()=>{
+            const cur = getLogoScale(airlineId);
+            const next = Math.min(2.5, +(cur + 0.05).toFixed(2));
+            setLogoScale(airlineId, next);
+            const slider = box.querySelector('[data-act="slider"][data-id="'+airlineId+'"]');
+            const read   = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
+            if(slider) slider.value = next;
+            if(read)   read.textContent = next.toFixed(2);
+            render();
+          });
+        }
+      });
+
       wrap.appendChild(box);
     });
   };
@@ -382,8 +440,7 @@ function onMove(e){
   if(resizingLogo){
     const dy = (p.y - resizingLogo.startY);
     const newScale = Math.max(0.4, Math.min(2.5, resizingLogo.startScale * (1 + dy/240)));
-    logoScaleMap[resizingLogo.id] = newScale;
-    saveJSON(LS_LOGO, logoScaleMap);
+    setLogoScale(resizingLogo.id, newScale);
     render();
     return;
   }
