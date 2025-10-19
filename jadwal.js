@@ -260,7 +260,7 @@ function tableBounds(section){
   if(!isFinite(left)) left = 60;
   if(!isFinite(right)) right = 1020;
   // padding kecil supaya masuk di dalam kotak putih
-  left  = Math.max(40, left - 17);
+  left  = Math.max(40, left - 0);
   right = Math.min(1040, right - 0);
   return { left, right };
 }
