@@ -205,45 +205,35 @@ function renderRowEditors(){
     const data = state[listName];
     wrap.innerHTML='';
     data.forEach((row, idx)=>{
-      const idKey = `${listName==='arrivals'?'arr':'dep'}_${idx}_airline`;
-      const scaleVal = Math.round(getLogoScale(idKey) * 100);
-
       const box=document.createElement('div');
       box.className='airline-row';
       box.innerHTML=`
         <input placeholder="Airlines (Super Air Jet / Wings Air)" value="${row.airline||''}" data-k="airline">
         <input placeholder="Flight No" value="${row.flight||''}" data-k="flight">
-        <input placeholder="Origin/Dest" value="${row.city||''}"   data-k="city">
-        <input placeholder="Time" value="${row.time||''}"         data-k="time">
+        <input placeholder="Origin/Dest" maxlength="10" value="${row.city||''}" data-k="city">
+        <input placeholder="Time" value="${row.time||''}" data-k="time">
         <button type="button" title="Hapus">✕</button>
-
-        <div style="grid-column: 1 / -1; display:flex; align-items:center; gap:8px;">
-          <label style="margin:0; font-size:12px; color:#94a3b8; width:110px;">Logo Size</label>
-          <input type="range" min="40" max="200" step="1" value="${scaleVal}" data-logo-range style="flex:1;">
-          <span class="small" data-logo-val>${scaleVal}%</span>
-        </div>
       `;
-      // input teks
       box.querySelectorAll('[data-k]').forEach(inp=>{
         const k=inp.dataset.k;
-        inp.oninput=()=>{ state[listName][idx][k]=inp.value; render(); };
+        inp.oninput=()=>{ 
+          if (k==='city' && inp.value.length > 10) {
+            inp.value = inp.value.substring(0,10); // jaga aman
+          }
+          state[listName][idx][k]=inp.value; 
+          render(); 
+        };
       });
-      // hapus baris
-      box.querySelector('button').onclick=()=>{ state[listName].splice(idx,1); buildItems(); renderRowEditors(); render(); };
-
-      // slider logo per baris
-      const range = box.querySelector('[data-logo-range]');
-      const readout = box.querySelector('[data-logo-val]');
-      range.addEventListener('input', ()=>{
-        const pct = +range.value; readout.textContent = `${pct}%`;
-        logoScaleMap[idKey] = Math.max(0.4, Math.min(2.5, pct/100));
-        saveJSON(LS_LOGO, logoScaleMap);
-        render();
-      });
-
+      box.querySelector('button').onclick=()=>{ 
+        state[listName].splice(idx,1); 
+        buildItems(); 
+        renderRowEditors(); 
+        render(); 
+      };
       wrap.appendChild(box);
     });
   };
+  renderItemsCountHints();
   build(arrivalsWrap,'arrivals');
   build(departuresWrap,'departures');
 }
@@ -298,8 +288,8 @@ function tableBounds(section){
   if(!isFinite(right)) right = 1020;
 
   // padding agar “masuk” kotak putih
-  left  = Math.max(40,  left  - 8);
-  right = Math.min(1040, right - 10);
+  left  = Math.max(40,  left  - 0);
+  right = Math.min(1040, right - 0);
 
   return { left, right };
 }
