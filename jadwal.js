@@ -60,41 +60,41 @@ const state = {
 
 // ====== Posisi default (tambah baris ke-3)
 const POS_DEFAULT = {
-  date      : { x:540, y:560,  align:'center', color:'#ffffff', h:48 },
+  date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
   // ARR y: 650, 760, 870
-  arr_0_airline:{ x:120, y:650, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  arr_0_flight :{ x:420, y:650, align:'left',  color:'#ffffff', h:40 },
-  arr_0_city   :{ x:690, y:650, align:'left',  color:'#ffffff', h:40 },
-  arr_0_time   :{ x:990, y:650, align:'right', color:'#ffffff', h:40 },
+  arr_0_airline:{ x:57, y:689, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_0_flight :{ x:366, y:689, align:'left',  color:'#ffffff', h:40 },
+  arr_0_city   :{ x:630, y:689, align:'left',  color:'#ffffff', h:40 },
+  arr_0_time   :{ x:1020, y:689, align:'right', color:'#ffffff', h:40 },
 
-  arr_1_airline:{ x:120, y:760, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  arr_1_flight :{ x:420, y:760, align:'left',  color:'#ffffff', h:40 },
-  arr_1_city   :{ x:690, y:760, align:'left',  color:'#ffffff', h:40 },
-  arr_1_time   :{ x:990, y:760, align:'right', color:'#ffffff', h:40 },
+  arr_1_airline:{ x:57, y:763, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_1_flight :{ x:354, y:763, align:'left',  color:'#ffffff', h:40 },
+  arr_1_city   :{ x:621, y:763, align:'left',  color:'#ffffff', h:40 },
+  arr_1_time   :{ x:1017, y:763, align:'right', color:'#ffffff', h:40 },
 
-  arr_2_airline:{ x:120, y:870, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  arr_2_flight :{ x:420, y:870, align:'left',  color:'#ffffff', h:40 },
-  arr_2_city   :{ x:690, y:870, align:'left',  color:'#ffffff', h:40 },
-  arr_2_time   :{ x:990, y:870, align:'right', color:'#ffffff', h:40 },
+  arr_2_airline:{ x:57, y:852, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_2_flight :{ x:363, y:852, align:'left',  color:'#ffffff', h:40 },
+  arr_2_city   :{ x:603, y:852, align:'left',  color:'#ffffff', h:40 },
+  arr_2_time   :{ x:1020, y:852, align:'right', color:'#ffffff', h:40 },
 
   // DEP y: 1030, 1140, 1250
-  dep_0_airline:{ x:120, y:1030, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  dep_0_flight :{ x:420, y:1030, align:'left',  color:'#ffffff', h:40 },
-  dep_0_city   :{ x:690, y:1030, align:'left',  color:'#ffffff', h:40 },
-  dep_0_time   :{ x:990, y:1030, align:'right', color:'#ffffff', h:40 },
+  dep_0_airline:{ x:57, y:1084, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_0_flight :{ x:366, y:1084, align:'left',  color:'#ffffff', h:40 },
+  dep_0_city   :{ x:630, y:1084, align:'left',  color:'#ffffff', h:40 },
+  dep_0_time   :{ x:1020, y:1084, align:'right', color:'#ffffff', h:40 },
 
-  dep_1_airline:{ x:120, y:1140, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  dep_1_flight :{ x:420, y:1140, align:'left',  color:'#ffffff', h:40 },
-  dep_1_city   :{ x:690, y:1140, align:'left',  color:'#ffffff', h:40 },
-  dep_1_time   :{ x:990, y:1140, align:'right', color:'#ffffff', h:40 },
+  dep_1_airline:{ x:57, y:1173, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_1_flight :{ x:354, y:1173, align:'left',  color:'#ffffff', h:40 },
+  dep_1_city   :{ x:621, y:1173, align:'left',  color:'#ffffff', h:40 },
+  dep_1_time   :{ x:1017, y:1173, align:'right', color:'#ffffff', h:40 },
 
-  dep_2_airline:{ x:120, y:1250, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  dep_2_flight :{ x:420, y:1250, align:'left',  color:'#ffffff', h:40 },
-  dep_2_city   :{ x:690, y:1250, align:'left',  color:'#ffffff', h:40 },
-  dep_2_time   :{ x:990, y:1250, align:'right', color:'#ffffff', h:40 },
+  dep_2_airline:{ x:57, y:1250, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_2_flight :{ x:363, y:1250, align:'left',  color:'#ffffff', h:40 },
+  dep_2_city   :{ x:603, y:1250, align:'left',  color:'#ffffff', h:40 },
+  dep_2_time   :{ x:1020, y:1250, align:'right', color:'#ffffff', h:40 },
 
-  hours     : { x:540, y:1372, align:'center', color:'#ffffff', h:44 }
+  hours     : { x:702, y:1384, align:'center', color:'#ffffff', h:44 }
 };
 
 // ====== Items & overrides
