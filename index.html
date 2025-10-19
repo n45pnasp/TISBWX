@@ -10,78 +10,90 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
 
-  <style>
-    :root { --bg:#0a1425; --text:#fff; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Montserrat', sans-serif;
-      background: var(--bg); color: var(--text);
-      margin:0; display:flex; min-height:100svh;
-    }
+<style>
+  :root { --bg:#0a1425; --text:#fff; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--bg); color: var(--text);
+    margin:0; display:flex; min-height:100svh;
+  }
 
-    /* ===== Panel ===== */
-    aside {
-      width: 360px; background: #111a2d; padding: 16px; overflow-y: auto;
-      border-right: 1px solid #1d2a44; transition: transform .25s ease, opacity .25s ease;
-    }
-    body.panel-collapsed aside {
-      transform: translateX(-100%); opacity: 0;
-    }
+  /* ===== Panel ===== */
+  aside {
+    width: 360px; background: #111a2d; padding: 16px; overflow-y: auto;
+    border-right: 1px solid #1d2a44; transition: transform .25s ease, opacity .25s ease;
+  }
+  body.panel-collapsed aside {
+    transform: translateX(-100%); opacity: 0;
+  }
 
-    label { display:block; margin-top:10px; font-weight:600; font-size:14px; }
-    input[type="text"], input[type="file"], input[type="color"], input[type="range"], select {
-      width:100%; margin-top:4px; padding:8px; border-radius:8px; border:none;
-      background:#1e2d4a; color:#fff;
-    }
-    h2 { margin:0 0 12px; font-size:18px; }
-    .btn {
-      background:#0ea5e9; border:none; color:white; padding:10px 12px; border-radius:8px;
-      cursor:pointer; margin-top:8px; width:100%; font-weight:700;
-    }
-    .btn.secondary { background:#334155; }
-    .small { font-size:11px; color:#94a3b8; }
-    .small-divider { border:0; border-top:1px solid #22314f; margin:12px 0; }
-    .section-title { margin-top:18px; font-weight:700; color:#38bdf8; font-size:14px; }
+  label { display:block; margin-top:10px; font-weight:600; font-size:14px; }
+  input[type="text"], input[type="file"], input[type="color"], input[type="range"], select {
+    width:100%; margin-top:4px; padding:8px; border-radius:8px; border:none;
+    background:#1e2d4a; color:#fff;
+  }
+  h2 { margin:0 0 12px; font-size:18px; }
+  .btn {
+    background:#0ea5e9; border:none; color:white; padding:10px 12px; border-radius:8px;
+    cursor:pointer; margin-top:8px; width:100%; font-weight:700;
+  }
+  .btn.secondary { background:#334155; }
+  .small { font-size:11px; color:#94a3b8; }
+  .small-divider { border:0; border-top:1px solid #22314f; margin:12px 0; }
+  .section-title { margin-top:18px; font-weight:700; color:#38bdf8; font-size:14px; }
 
-    .airline-row { display:grid; grid-template-columns:repeat(4,1fr) 40px; gap:6px; margin-bottom:8px; }
-    .airline-row input { background:#1e2d4a; color:#fff; border:none; padding:8px; border-radius:6px; }
-    .airline-row button { background:#ef4444; border:none; color:white; font-weight:800; border-radius:6px; cursor:pointer; }
+  .airline-row { display:grid; grid-template-columns:repeat(4,1fr) 40px; gap:6px; margin-bottom:8px; }
+  .airline-row input { background:#1e2d4a; color:#fff; border:none; padding:8px; border-radius:6px; }
+  .airline-row button { background:#ef4444; border:none; color:white; font-weight:800; border-radius:6px; cursor:pointer; }
 
-    .toggle { display:flex; align-items:center; gap:8px; margin-top:12px; }
-    .toggle input { width:auto; }
+  .toggle { display:flex; align-items:center; gap:8px; margin-top:12px; }
+  .toggle input { width:auto; }
 
-    /* ===== Main / Canvas ===== */
-    main {
-      flex:1; display:flex; align-items:center; justify-content:center; background:#0a1425;
-      padding:16px; position:relative;
-    }
-    canvas {
-      background:#222; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.35);
-      width: min(100%, 560px);
-      height: auto;
-      max-height: calc(100svh - 32px);
-      touch-action: none; /* drag di HP nyaman */
-    }
+  /* ===== Main / Canvas ===== */
+  main {
+    flex:1; display:flex; align-items:center; justify-content:center; background:#0a1425;
+    padding:16px; position:relative;
+  }
+  
+  /* Rasio poster dikunci 1080:1920, desktop pakai tinggi sebagai acuan */
+  canvas{
+    background:#222;
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    touch-action:none;
+    aspect-ratio: 1080 / 1920;                 /* kunci rasio */
+    height: min(calc(100svh - 32px), 980px);   /* desktop: tinggi jadi acuan */
+    width: auto;                                /* lebar mengikuti rasio, tidak melebar */
+  }
 
-    /* Tombol toggle panel */
-    #togglePanel {
-      position: fixed; right: 16px; top: 16px; z-index: 50;
-      background:#0ea5e9; color:#fff; border:none; border-radius:10px;
-      padding:10px 12px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.35);
-    }
-    body.panel-collapsed #togglePanel { right: 16px; }
-    #togglePanel span { margin-left:6px; font-weight:700; }
+  /* Tombol toggle panel */
+  #togglePanel {
+    position: fixed; right: 16px; top: 16px; z-index: 50;
+    background:#0ea5e9; color:#fff; border:none; border-radius:10px;
+    padding:10px 12px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  body.panel-collapsed #togglePanel { right: 16px; }
+  #togglePanel span { margin-left:6px; font-weight:700; }
 
-    /* ===== Responsif (HP/Tablet) ===== */
-    @media (max-width: 900px) {
-      body { flex-direction: column; }
-      aside { width:100%; border-right:0; border-bottom:1px solid #1d2a44; }
-      body.panel-collapsed aside { transform: translateY(-100%); }
-      main { padding:12px; }
-      canvas { width:100%; max-height: calc(100svh - 120px); }
-      #togglePanel { top: 10px; right: 10px; }
+  /* ===== Responsif (HP/Tablet) ===== */
+  @media (max-width: 900px) {
+    body { flex-direction: column; }
+    aside { width:100%; border-right:0; border-bottom:1px solid #1d2a44; }
+    body.panel-collapsed aside { transform: translateY(-100%); }
+    main { padding:12px; }
+    canvas { width:100%; height:auto; max-height: calc(100svh - 120px); } /* HP: lebar penuh */
+    #togglePanel { top: 10px; right: 10px; }
+  }
+
+  /* ===== Desktop guard (hindari melebar di monitor tinggi) ===== */
+  @media (min-width: 901px){
+    canvas{
+      height: min(calc(100svh - 64px), 1100px); /* batas tinggi aman desktop */
+      width: auto;                               /* tetap ikut rasio */
     }
-  </style>
+  }
+</style>
 </head>
 <body>
   <button id="togglePanel">☰ <span>Sembunyikan Panel</span></button>
