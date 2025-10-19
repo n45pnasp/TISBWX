@@ -78,33 +78,33 @@ const POS_DEFAULT = {
   date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
   // ARR (y: 689, 763, 852)
-  arr_0_airline:{ x:57,  y:689, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_0_airline:{ x:57,  y:676, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   arr_0_flight :{ x:366, y:689, align:'left',  color:'#ffffff', h:40 },
   arr_0_city   :{ x:630, y:689, align:'left',  color:'#ffffff', h:40 },
   arr_0_time   :{ x:1020,y:689, align:'right', color:'#ffffff', h:40 },
 
-  arr_1_airline:{ x:57,  y:763, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_1_airline:{ x:57,  y:750, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   arr_1_flight :{ x:354, y:763, align:'left',  color:'#ffffff', h:40 },
   arr_1_city   :{ x:621, y:763, align:'left',  color:'#ffffff', h:40 },
   arr_1_time   :{ x:1017,y:763, align:'right', color:'#ffffff', h:40 },
 
-  arr_2_airline:{ x:57,  y:852, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_2_airline:{ x:57,  y:839, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   arr_2_flight :{ x:363, y:852, align:'left',  color:'#ffffff', h:40 },
   arr_2_city   :{ x:603, y:852, align:'left',  color:'#ffffff', h:40 },
   arr_2_time   :{ x:1020,y:852, align:'right', color:'#ffffff', h:40 },
 
   // DEP (y: 1084, 1173, 1250)
-  dep_0_airline:{ x:57,  y:1084, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_0_airline:{ x:57,  y:1071, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   dep_0_flight :{ x:366, y:1084, align:'left',  color:'#ffffff', h:40 },
   dep_0_city   :{ x:630, y:1084, align:'left',  color:'#ffffff', h:40 },
   dep_0_time   :{ x:1020,y:1084, align:'right', color:'#ffffff', h:40 },
 
-  dep_1_airline:{ x:57,  y:1173, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_1_airline:{ x:57,  y:1160, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   dep_1_flight :{ x:354, y:1173, align:'left',  color:'#ffffff', h:40 },
   dep_1_city   :{ x:621, y:1173, align:'left',  color:'#ffffff', h:40 },
   dep_1_time   :{ x:1017,y:1173, align:'right', color:'#ffffff', h:40 },
 
-  dep_2_airline:{ x:57,  y:1250, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_2_airline:{ x:57,  y:1237, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   dep_2_flight :{ x:363, y:1250, align:'left',  color:'#ffffff', h:40 },
   dep_2_city   :{ x:603, y:1250, align:'left',  color:'#ffffff', h:40 },
   dep_2_time   :{ x:1020,y:1250, align:'right', color:'#ffffff', h:40 },
