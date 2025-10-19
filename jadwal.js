@@ -1,11 +1,11 @@
 /******************************************************************
- * jadwal.js — v10 (final)
- * - Ukuran logo maskapai terpisah dari teks (per baris)
- * - Slider "Logo Size" per baris + Shift+Drag untuk resize logo
- * - Rasio logo terjaga (aspect ratio)
- * - Garis pemisah sejajar kotak putih tabel
+ * jadwal.js — v11 (final)
+ * - Maks 3 baris ARR/DEP, drag posisi, indikator ID+koordinat
+ * - Logo maskapai otomatis + resize khusus (Shift+Drag) per-baris
+ * - Rasio logo terjaga, skala per-baris tersimpan (localStorage)
+ * - Garis pemisah mengikuti lebar kotak putih tabel
  * - Nama file: scheduleflightbwx_tglBlnTahun.png/pdf
- * - Maks 3 baris (ARR/DEP), drag posisi, indikator, DPI-aware
+ * - Hi-DPI aware (tajam di HP/retina)
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -43,7 +43,7 @@ btnToggle?.addEventListener('click', () => {
   span.textContent = document.body.classList.contains('panel-collapsed') ? 'Tampilkan Panel' : 'Sembunyikan Panel';
 });
 
-// Default slider (40/30/35)
+// Nilai default slider (40/30/35)
 if (!elSizeDate.value)  elSizeDate.value  = 40;
 if (!elSizeRow.value)   elSizeRow.value   = 30;
 if (!elSizeHours.value) elSizeHours.value = 35;
@@ -52,6 +52,7 @@ if (!elSizeHours.value) elSizeHours.value = 35;
   if (el && out) { out.textContent = el.value; el.addEventListener('input', ()=>{ out.textContent=el.value; render(); }); }
 });
 elHoursCol?.addEventListener('input', render);
+let showGuides = true;
 elShowInd?.addEventListener('change', ()=>{ showGuides = elShowInd.checked; render(); });
 
 // ===== Assets
@@ -59,9 +60,9 @@ const ASSETS = {
   bg:  'bahan_flyer_bwx.png',
   bg2: 'bahan_flyer_bwx2.png',
   bg3: 'bahan_flyer_bwx3.png',
-  super: 'super_air_jet_logo.png',
-  wings: 'wings_logo.png',
-  batik: 'batik_logo.png',
+  super:   'super_air_jet_logo.png',
+  wings:   'wings_logo.png',
+  batik:   'batik_logo.png',
   citilink: 'citilink_logo.png'
 };
 
@@ -69,11 +70,11 @@ const ASSETS = {
 const state = {
   bgURL: ASSETS.bg,
   arrivals: [
-    { airline:'SUPER AIR JET', flight:'IU 370', city:'JAKARTA',  time:'10:15 WIB' },
+    { airline:'SUPER AIR JET', flight:'IU 370',  city:'JAKARTA',  time:'10:15 WIB' },
     { airline:'WINGS AIR',     flight:'IW 1880', city:'SURABAYA', time:'12:40 WIB' }
   ],
   departures: [
-    { airline:'SUPER AIR JET', flight:'IU 371', city:'JAKARTA',  time:'10:55 WIB' },
+    { airline:'SUPER AIR JET', flight:'IU 371',  city:'JAKARTA',  time:'10:55 WIB' },
     { airline:'WINGS AIR',     flight:'IW 1881', city:'SURABAYA', time:'13:00 WIB' }
   ]
 };
@@ -122,9 +123,8 @@ const LS_POS   = 'fs_positions_v11';   // posisi elemen
 const LS_LOGO  = 'fs_logo_scales_v2';  // skala logo per item
 
 let items = [];
-let posOverrides   = loadJSON(LS_POS,  {});
-let logoScaleMap   = loadJSON(LS_LOGO, {}); // contoh: { "arr_0_airline": 1.0, "dep_1_airline": 0.9 }
-let showGuides = true;
+let posOverrides = loadJSON(LS_POS, {});
+let logoScaleMap = loadJSON(LS_LOGO, {}); // contoh: { "arr_0_airline": 1.0, "dep_1_airline": 0.9 }
 
 function loadJSON(key, def){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(def)); }catch{ return def; } }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
@@ -153,12 +153,11 @@ function sizes(){
     rowH   : Math.round(szRow * 1.2),
     dateH : Math.round(szDate * 1.12),
     hoursH: Math.round(szHours * 1.12),
-    logoBaseH : Math.round(32 * 1.05) // base tinggi logo independen (≈ 34px). Dapat diskalakan per-baris.
+    logoBaseH : Math.round(32 * 1.05) // base tinggi logo (≈34px), diskalakan per-baris
   };
 }
 
 function getLogoScale(id){
-  // id contoh: "arr_0_airline"
   return Math.max(0.4, Math.min(2.5, +(logoScaleMap[id] ?? 1.0)));
 }
 
@@ -181,6 +180,7 @@ function buildItems(){
 }
 buildItems();
 
+// posisi (ambil override kalau ada)
 function getPos(id){
   const base = POS_DEFAULT[id];
   const ov = posOverrides[id];
@@ -196,7 +196,7 @@ const IMG={};
 function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 async function getImg(src){ if(!src) return null; if(!IMG[src]) IMG[src]=await loadImage(src); return IMG[src]; }
 
-// ===== UI rows (maks 3) + slider ukuran logo per baris
+// ===== UI rows (maks 3) — plus limiter origin 10 huruf
 const arrivalsWrap   = document.getElementById('arrivals');
 const departuresWrap = document.getElementById('departures');
 
@@ -217,9 +217,7 @@ function renderRowEditors(){
       box.querySelectorAll('[data-k]').forEach(inp=>{
         const k=inp.dataset.k;
         inp.oninput=()=>{ 
-          if (k==='city' && inp.value.length > 10) {
-            inp.value = inp.value.substring(0,10); // jaga aman
-          }
+          if (k==='city' && inp.value.length > 10) inp.value = inp.value.substring(0,10);
           state[listName][idx][k]=inp.value; 
           render(); 
         };
@@ -233,11 +231,14 @@ function renderRowEditors(){
       wrap.appendChild(box);
     });
   };
-  renderItemsCountHints();
+  renderItemsCountHints(); // stub (tidak melakukan apa-apa, mencegah error)
   build(arrivalsWrap,'arrivals');
   build(departuresWrap,'departures');
 }
 renderRowEditors();
+
+// ---- stub agar tidak error saat dipanggil
+function renderItemsCountHints(){ /* no-op; bisa diisi ringkasan jumlah baris bila perlu */ }
 
 document.getElementById('addArrival')?.addEventListener('click', ()=>{
   if(state.arrivals.length>=3) return;
@@ -282,15 +283,14 @@ function tableBounds(section){
     const a = POS_DEFAULT[`${section}_${i}_airline`] ? getPos(`${section}_${i}_airline`).x : null;
     const t = POS_DEFAULT[`${section}_${i}_time`]    ? getPos(`${section}_${i}_time`).x    : null;
     if(a!=null) left  = Math.min(left,  a);
-    if(t!=null) right = Math.max(right, t); // kolom TIME right-aligned
+    if(t!=null) right = Math.max(right, t); // kolom TIME right-aligned (x = ujung kanan)
   }
   if(!isFinite(left))  left  = 60;
   if(!isFinite(right)) right = 1020;
 
-  // padding agar “masuk” kotak putih
-  left  = Math.max(40,  left  - 0);
-  right = Math.min(1040, right - 0);
-
+  // padding kecil supaya “masuk” ke dalam kotak putih
+  left  = Math.max(48,  left - 0);   // sedikit ke kanan
+  right = Math.min(1032, right - 0); // sedikit lebih pendek
   return { left, right };
 }
 
@@ -386,7 +386,6 @@ async function onDown(e){
     const r=await getRectForItem(it);
     if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
       const pos=getPos(it.id);
-      // Jika klik di logo + tahan SHIFT → mode resize
       if (it.kind==='airline' && (e.shiftKey || (e.touches && e.touches.length===2))) {
         const cur = getLogoScale(it.id);
         resizingLogo = { id: it.id, startY: p.y, startScale: cur };
@@ -400,7 +399,7 @@ async function onDown(e){
 function onMove(e){
   const p=pointer(e);
   if(resizingLogo){
-    // geser vertikal mengubah skala
+    // geser vertikal mengubah skala (sensitivitas 240px ≈ 100%)
     const dy = (p.y - resizingLogo.startY);
     const newScale = Math.max(0.4, Math.min(2.5, resizingLogo.startScale * (1 + dy/240)));
     logoScaleMap[resizingLogo.id] = newScale;
@@ -425,7 +424,7 @@ c.addEventListener('touchend', onUp);
 // ====== Keyboard
 window.addEventListener('keydown', (e)=>{
   if(e.key.toLowerCase()==='g'){ showGuides=!showGuides; if(elShowInd) elShowInd.checked=showGuides; render(); }
-  if(e.key.toLowerCase()==='r'){ localStorage.removeItem(LS_POS); localStorage.removeItem(LS_LOGO); posOverrides={}; logoScaleMap={}; renderRowEditors(); render(); }
+  if(e.key.toLowerCase()==='r'){ localStorage.removeItem(LS_POS); localStorage.removeItem(LS_LOGO); posOverrides={}; logoScaleMap={}; buildItems(); renderRowEditors(); render(); }
 });
 
 // ====== Background switch & upload
