@@ -1,3 +1,4 @@
+
 /******************************************************************
  * jadwal.js — v11 (final)
  * - Logo maskapai terpisah dari teks (skala/resize per baris)
@@ -151,9 +152,9 @@ function sizes(){
   const szHours = +elSizeHours?.value || 35;
   const hoursCol = elHoursCol?.value || '#ffffff';
   return {
-    dateFont : `700 ${szDate}px Montserrat, system-ui, sans-serif`,
-    rowFont  : `700 ${szRow}px Montserrat, system-ui, sans-serif`,
-    hoursFont: `700 ${szHours}px Montserrat, system-ui, sans-serif`,
+    dateFont : `900 ${szDate}px Montserrat, system-ui, sans-serif`,
+    rowFont  : `800 ${szRow}px Montserrat, system-ui, sans-serif`,
+    hoursFont: `900 ${szHours}px Montserrat, system-ui, sans-serif`,
     hoursColor: hoursCol,
     rowH   : Math.round(szRow * 1.2),
     dateH : Math.round(szDate * 1.12),
@@ -211,37 +212,57 @@ function renderItemsCountHints(){}
 function renderRowEditors(){
   const build = (wrap, listName) => {
     const data = state[listName];
-    wrap.innerHTML = '';
-    data.forEach((row, idx) => {
-      const box = document.createElement('div');
-      box.className = 'airline-row';
-      box.innerHTML = `
+    wrap.innerHTML='';
+    data.forEach((row, idx)=>{
+      const box=document.createElement('div');
+      box.className='airline-row';
+      const idKey = `${listName==='arrivals'?'arr':'dep'}_${idx}_airline`;
+      const scale = getLogoScale(idKey);
+      box.innerHTML=`
         <input placeholder="Airlines (Super Air Jet / Wings Air)" value="${row.airline||''}" data-k="airline">
         <input placeholder="Flight No" value="${row.flight||''}" data-k="flight">
         <input placeholder="Origin/Dest" maxlength="10" value="${row.city||''}" data-k="city">
         <input placeholder="Time" value="${row.time||''}" data-k="time">
         <button type="button" title="Hapus">✕</button>
+        <div style="grid-column:1/-1; display:flex; align-items:center; gap:10px; margin-top:4px;">
+          <small style="opacity:.8; width:110px;">Ukuran Logo</small>
+          <input type="range" min="0.5" max="2.5" step="0.05" value="${scale}" data-logo-range="${idKey}" style="flex:1;">
+          <small style="width:46px; text-align:right;" id="val_${idKey}">${Math.round(scale*100)}%</small>
+        </div>
       `;
-
-      // TIDAK ada pemotongan manual—cukup serahkan ke maxlength
-      box.querySelectorAll('[data-k]').forEach(inp => {
-        const k = inp.dataset.k;
-        inp.oninput = () => {
-          state[listName][idx][k] = inp.value;
-          render();
+      // Binding text input
+      box.querySelectorAll('[data-k]').forEach(inp=>{
+        const k=inp.dataset.k;
+        inp.oninput=()=>{ 
+          if (k==='city' && inp.value.length > 10) inp.value = inp.value.substring(0,10);
+          state[listName][idx][k]=inp.value; 
+          render(); 
         };
       });
-
-      box.querySelector('button').onclick = () => {
-        state[listName].splice(idx, 1);
-        buildItems(); renderRowEditors(); render();
+      // Delete baris
+      box.querySelector('button').onclick=()=>{ 
+        state[listName].splice(idx,1); 
+        buildItems(); 
+        renderRowEditors(); 
+        render(); 
       };
+      // Slider logo
+      const range = box.querySelector(`[data-logo-range="${idKey}"]`);
+      const out   = box.querySelector(`#val_${idKey}`);
+      range.oninput = () => {
+        const v = +range.value;
+        logoScaleMap[idKey] = v;
+        saveJSON(LS_LOGO, logoScaleMap);
+        if (out) out.textContent = `${Math.round(v*100)}%`;
+        render();
+      };
+
       wrap.appendChild(box);
     });
   };
-
-  build(arrivalsWrap, 'arrivals');
-  build(departuresWrap, 'departures');
+  renderItemsCountHints();
+  build(arrivalsWrap,'arrivals');
+  build(departuresWrap,'departures');
 }
 renderRowEditors();
 
