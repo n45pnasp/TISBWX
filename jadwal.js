@@ -1,5 +1,11 @@
 /******************************************************************
- * jadwal.js — v12 (logo per baris + slider & +/-)
+ * jadwal.js — v14 (final)
+ * - Dropdown tanggal (bulan start dari bulan sekarang) → format:
+ *   HARI, DD BULAN YYYY langsung isi ke dateText
+ * - Logo per baris bisa dibesarkan/dikecilkan via tombol - / +
+ * - Shift+Drag untuk resize logo di kanvas
+ * - Garis pemisah selaras kotak tabel
+ * - Retains all previous features (max 3 rows, indicators, DPI)
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -31,6 +37,13 @@ const elBgInput    = document.getElementById('bgInput');
 const elShowInd    = document.getElementById('showIndicators');
 const btnToggle    = document.getElementById('togglePanel');
 
+// === Date dropdown controls
+const selDay    = document.getElementById('selDay');
+const selMonth  = document.getElementById('selMonth');
+const selYear   = document.getElementById('selYear');
+const btnDateGo = document.getElementById('applyDateSmall');
+
+// Toggle panel
 btnToggle?.addEventListener('click', () => {
   document.body.classList.toggle('panel-collapsed');
   const span = btnToggle.querySelector('span');
@@ -72,11 +85,11 @@ const state = {
   ]
 };
 
-// ===== Posisi default (koordinat final dari Anda)
+// ===== Posisi default
 const POS_DEFAULT = {
   date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
-  // ARR (y: 689, 763, 852)
+  // ARR
   arr_0_airline:{ x:57,  y:676, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   arr_0_flight :{ x:366, y:689, align:'left',  color:'#ffffff', h:40 },
   arr_0_city   :{ x:630, y:689, align:'left',  color:'#ffffff', h:40 },
@@ -92,7 +105,7 @@ const POS_DEFAULT = {
   arr_2_city   :{ x:603, y:844, align:'left',  color:'#ffffff', h:40 },
   arr_2_time   :{ x:1020,y:844, align:'right', color:'#ffffff', h:40 },
 
-  // DEP (y: 1084, 1173, 1250)
+  // DEP
   dep_0_airline:{ x:57,  y:1071, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   dep_0_flight :{ x:366, y:1084, align:'left',  color:'#ffffff', h:40 },
   dep_0_city   :{ x:630, y:1084, align:'left',  color:'#ffffff', h:40 },
@@ -113,7 +126,7 @@ const POS_DEFAULT = {
 
 // ===== Items & overrides
 const LS_POS   = 'fs_positions_v12';   // posisi elemen
-const LS_LOGO  = 'fs_logo_scales_v3';  // skala logo per item (versi baru)
+const LS_LOGO  = 'fs_logo_scales_v4';  // skala logo per item
 
 let items = [];
 let posOverrides   = loadJSON(LS_POS,  {});
@@ -187,19 +200,18 @@ const IMG={};
 function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 async function getImg(src){ if(!src) return null; if(!IMG[src]) IMG[src]=await loadImage(src); return IMG[src]; }
 
-// ===== UI rows (maks 3) – Origin/Dest maxlength=10 + kontrol ukuran logo
+// ===== UI rows (maks 3) – Origin/Dest maxlength=10 + kontrol ukuran logo (±)
 const arrivalsWrap   = document.getElementById('arrivals');
 const departuresWrap = document.getElementById('departures');
 
 function miniLogoControls(id){
   const scale = getLogoScale(id).toFixed(2);
   return `
-    <div class="logo-controls" style="grid-column: 1 / -1; display:flex; align-items:center; gap:8px; margin-top:4px;">
+    <div class="logo-controls" style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px;">
       <small style="opacity:.8;">Logo Size:</small>
-      <button type="button" data-act="minus" data-id="${id}" style="padding:4px 8px;border-radius:6px;border:none;background:#334155;color:#fff;font-weight:800;">−</button>
-      <input type="range" min="0.4" max="2.5" step="0.05" value="${scale}" data-act="slider" data-id="${id}" style="flex:1;">
-      <button type="button" data-act="plus" data-id="${id}" style="padding:4px 8px;border-radius:6px;border:none;background:#334155;color:#fff;font-weight:800;">+</button>
-      <span data-act="read" data-id="${id}" style="min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">${scale}</span>
+      <button type="button" data-act="minus" data-id="${id}" style="padding:4px 10px;border-radius:6px;border:none;background:#334155;color:#fff;font-weight:800;">−</button>
+      <button type="button" data-act="plus"  data-id="${id}" style="padding:4px 10px;border-radius:6px;border:none;background:#334155;color:#fff;font-weight:800;">+</button>
+      <span data-act="read"  data-id="${id}" style="min-width:44px;text-align:right;font-variant-numeric:tabular-nums;">${scale}</span>
     </div>
   `;
 }
@@ -234,25 +246,16 @@ function renderRowEditors(){
         state[listName].splice(idx,1); buildItems(); renderRowEditors(); render(); 
       };
 
-      // kontrol logo (slider & +/-)
+      // kontrol logo (+/-)
       box.querySelectorAll('[data-id="'+airlineId+'"]').forEach(ctrl=>{
         const act = ctrl.getAttribute('data-act');
-        if(act==='slider'){
-          ctrl.addEventListener('input', ()=>{
-            setLogoScale(airlineId, ctrl.value);
-            const read = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
-            if(read) read.textContent = (+ctrl.value).toFixed(2);
-            render();
-          });
-        }else if(act==='minus'){
+        if(act==='minus'){
           ctrl.addEventListener('click', ()=>{
             const cur = getLogoScale(airlineId);
             const next = Math.max(0.4, +(cur - 0.05).toFixed(2));
             setLogoScale(airlineId, next);
-            const slider = box.querySelector('[data-act="slider"][data-id="'+airlineId+'"]');
-            const read   = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
-            if(slider) slider.value = next;
-            if(read)   read.textContent = next.toFixed(2);
+            const read = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
+            if(read) read.textContent = next.toFixed(2);
             render();
           });
         }else if(act==='plus'){
@@ -260,10 +263,8 @@ function renderRowEditors(){
             const cur = getLogoScale(airlineId);
             const next = Math.min(2.5, +(cur + 0.05).toFixed(2));
             setLogoScale(airlineId, next);
-            const slider = box.querySelector('[data-act="slider"][data-id="'+airlineId+'"]');
-            const read   = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
-            if(slider) slider.value = next;
-            if(read)   read.textContent = next.toFixed(2);
+            const read = box.querySelector('[data-act="read"][data-id="'+airlineId+'"]');
+            if(read) read.textContent = next.toFixed(2);
             render();
           });
         }
@@ -287,6 +288,68 @@ document.getElementById('addDeparture')?.addEventListener('click', ()=>{
   state.departures.push({airline:'',flight:'',city:'',time:''});
   buildItems(); renderRowEditors(); render();
 });
+
+// ===== Date dropdown helper =====
+const ID_DAYS  = ['MINGGU','SENIN','SELASA','RABU','KAMIS','JUMAT','SABTU'];
+const ID_MONTHS = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+
+function daysInMonth(y, mIdx){ // mIdx: 0-11
+  return new Date(y, mIdx+1, 0).getDate();
+}
+function rotateMonthsFromNow(){
+  const now = new Date();
+  const start = now.getMonth(); // 0-11
+  const arr = [];
+  for(let i=0;i<12;i++){
+    const mi = (start + i) % 12;
+    arr.push({ idx: mi, label: ID_MONTHS[mi] });
+  }
+  return arr;
+}
+function populateDateDropdowns(){
+  if(!(selDay && selMonth && selYear && btnDateGo)) return;
+
+  // months: start from current month
+  selMonth.innerHTML = rotateMonthsFromNow().map(m=>`<option value="${m.idx}">${m.label}</option>`).join('');
+
+  // years: current & next year
+  const now = new Date();
+  const ys = [now.getFullYear(), now.getFullYear()+1];
+  selYear.innerHTML = ys.map(y=>`<option value="${y}">${y}</option>`).join('');
+
+  // default day/month/year: today
+  selMonth.selectedIndex = 0; // current month at index 0 in rotated list
+  selYear.value = String(now.getFullYear());
+  refreshDays();
+
+  selDay.value = String(now.getDate());
+
+  // events
+  selMonth.addEventListener('change', refreshDays);
+  selYear.addEventListener('change', refreshDays);
+  btnDateGo.addEventListener('click', applyDateFromDropdown);
+}
+function refreshDays(){
+  const mIdx = +selMonth.value; // original month index 0-11
+  const y    = +selYear.value;
+  const maxD = daysInMonth(y, mIdx);
+  const prev = +selDay.value || 1;
+  selDay.innerHTML = Array.from({length:maxD}, (_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+  selDay.value = String(Math.min(prev, maxD));
+}
+function applyDateFromDropdown(){
+  const d = +selDay.value;
+  const mIdx = +selMonth.value; // 0-11
+  const y = +selYear.value;
+
+  const jsDate = new Date(y, mIdx, d);
+  const dayName = ID_DAYS[jsDate.getDay()];
+  const monthName = ID_MONTHS[mIdx];
+  const text = `${dayName}, ${String(d).padStart(2,'0')} ${monthName} ${y}`;
+  if(elDate){ elDate.value = text; }
+  render();
+}
+populateDateDropdowns();
 
 // ====== Helper: bounding box item (text/logo)
 async function getRectForItem(it){
