@@ -2,9 +2,9 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Flight Schedule Poster – WA Status</title>
-  <link rel="stylesheet" href="jadwal.css?v=4" />
+  <link rel="stylesheet" href="jadwal.css?v=6" />
 
   <!-- Font Montserrat -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,38 +12,80 @@
 
   <style>
     :root { --bg:#0a1425; --text:#fff; }
-    body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); margin:0; display:flex; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: var(--bg); color: var(--text);
+      margin:0; display:flex; min-height:100svh;
+    }
+
+    /* ===== Panel ===== */
     aside {
       width: 360px; background: #111a2d; padding: 16px; overflow-y: auto;
-      border-right: 1px solid #1d2a44; box-sizing: border-box;
+      border-right: 1px solid #1d2a44; transition: transform .25s ease, opacity .25s ease;
     }
+    body.panel-collapsed aside {
+      transform: translateX(-100%); opacity: 0;
+    }
+
     label { display:block; margin-top:10px; font-weight:600; font-size:14px; }
     input[type="text"], input[type="file"], input[type="color"], input[type="range"], select {
-      width:100%; margin-top:4px; padding:6px; border-radius:6px; border:none;
-      background:#1e2d4a; color:#fff; box-sizing:border-box;
+      width:100%; margin-top:4px; padding:8px; border-radius:8px; border:none;
+      background:#1e2d4a; color:#fff;
     }
     h2 { margin:0 0 12px; font-size:18px; }
     .btn {
-      background:#0ea5e9; border:none; color:white; padding:8px 12px; border-radius:6px;
-      cursor:pointer; margin-top:8px; width:100%; font-weight:600;
+      background:#0ea5e9; border:none; color:white; padding:10px 12px; border-radius:8px;
+      cursor:pointer; margin-top:8px; width:100%; font-weight:700;
     }
     .btn.secondary { background:#334155; }
     .small { font-size:11px; color:#94a3b8; }
     .small-divider { border:0; border-top:1px solid #22314f; margin:12px 0; }
-    main { flex:1; display:flex; align-items:center; justify-content:center; background:#0a1425; }
-    canvas { box-shadow:0 0 10px #000; max-width:100%; height:auto; background:#222; border-radius:8px; }
     .section-title { margin-top:18px; font-weight:700; color:#38bdf8; font-size:14px; }
 
-    .airline-row { display:grid; grid-template-columns:repeat(4,1fr) 36px; gap:4px; margin-bottom:6px; }
-    .airline-row input { background:#1e2d4a; color:#fff; border:none; padding:4px 6px; border-radius:4px; }
-    .airline-row button { background:#ef4444; border:none; color:white; font-weight:700; border-radius:4px; cursor:pointer; }
+    .airline-row { display:grid; grid-template-columns:repeat(4,1fr) 40px; gap:6px; margin-bottom:8px; }
+    .airline-row input { background:#1e2d4a; color:#fff; border:none; padding:8px; border-radius:6px; }
+    .airline-row button { background:#ef4444; border:none; color:white; font-weight:800; border-radius:6px; cursor:pointer; }
 
     .toggle { display:flex; align-items:center; gap:8px; margin-top:12px; }
     .toggle input { width:auto; }
-    .legend { font-size:12px; color:#94a3b8; margin-top:6px; }
+
+    /* ===== Main / Canvas ===== */
+    main {
+      flex:1; display:flex; align-items:center; justify-content:center; background:#0a1425;
+      padding:16px; position:relative;
+    }
+    canvas {
+      background:#222; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.35);
+      width: min(100%, 560px);
+      height: auto;
+      max-height: calc(100svh - 32px);
+      touch-action: none; /* drag di HP nyaman */
+    }
+
+    /* Tombol toggle panel */
+    #togglePanel {
+      position: fixed; right: 16px; top: 16px; z-index: 50;
+      background:#0ea5e9; color:#fff; border:none; border-radius:10px;
+      padding:10px 12px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.35);
+    }
+    body.panel-collapsed #togglePanel { right: 16px; }
+    #togglePanel span { margin-left:6px; font-weight:700; }
+
+    /* ===== Responsif (HP/Tablet) ===== */
+    @media (max-width: 900px) {
+      body { flex-direction: column; }
+      aside { width:100%; border-right:0; border-bottom:1px solid #1d2a44; }
+      body.panel-collapsed aside { transform: translateY(-100%); }
+      main { padding:12px; }
+      canvas { width:100%; max-height: calc(100svh - 120px); }
+      #togglePanel { top: 10px; right: 10px; }
+    }
   </style>
 </head>
 <body>
+  <button id="togglePanel">☰ <span>Sembunyikan Panel</span></button>
+
   <aside>
     <h2>Generator Poster Jadwal</h2>
 
@@ -74,7 +116,6 @@
       <input id="showIndicators" type="checkbox" checked>
       <label for="showIndicators" style="margin:0">Tampilkan Indikator ID + Koordinat</label>
     </div>
-    <div class="legend">Di kanvas akan terlihat kotak cyan & label seperti <code>arr_0_flight (x=420,y=650)</code>. Drag elemen untuk mengubah posisi.</div>
 
     <hr class="small-divider">
 
@@ -105,16 +146,17 @@
     </div>
 
     <p class="small">
-      Tips: kanvas 1080×1920 (WA Status).  
-      Teks & logo bisa <b>drag & drop</b>. Tekan <b>G</b> (toggle guides cepat) dan <b>R</b> (reset posisi).  
-      Logo maskapai otomatis: Super Air Jet / Wings Air.
+      Drag & drop teks/logo di kanvas.  
+      Tekan <b>G</b> (toggle indikator) & <b>R</b> (reset posisi).  
+      Kanvas tajam di retina/HP (Hi-DPI).
     </p>
   </aside>
 
   <main>
+    <!-- resolusi basis tetap 1080x1920; DPR diatur di JS -->
     <canvas id="poster" width="1080" height="1920" aria-label="Preview poster"></canvas>
   </main>
 
-  <script src="jadwal.js?v=4"></script>
+  <script src="jadwal.js?v=6"></script>
 </body>
 </html>
