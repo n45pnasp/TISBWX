@@ -1,31 +1,32 @@
 /******************************************************************
- * jadwal.js — v6
+ * jadwal.js — v7 (final)
  * - Koordinat default sesuai rekomendasi terbaru
  * - Maks 3 baris ARR/DEP
  * - Responsif + Hi-DPI (tajam di retina/HP)
  * - Indikator ID + Koordinat (toggle)
  * - Drag & drop presisi, posisi tersimpan (localStorage)
  * - Logo maskapai otomatis (Super Air Jet / Wings Air)
+ * - Garis pemisah antar baris (dinamis mengikuti jumlah baris & drag)
  ******************************************************************/
 
-// ===== Basis koordinat (jangan diubah)
+// ===== Basis koordinat
 const BASE_W = 1080;
 const BASE_H = 1920;
 
-// ===== Canvas & controls
+// ===== Canvas & DPR
 const c = document.getElementById('poster');
 const ctx = c.getContext('2d');
 
-// Terapkan DPR agar tajam di retina/HP
 function applyDPR() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   c.width  = BASE_W * dpr;
   c.height = BASE_H * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // semua gambar pakai unit basis
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // pakai unit basis
 }
 applyDPR();
 window.addEventListener('resize', () => { applyDPR(); render(); });
 
+// ===== Controls
 const elDate       = document.getElementById('dateText');
 const elHours      = document.getElementById('hoursText');
 const elSizeDate   = document.getElementById('sizeDate');
@@ -37,25 +38,22 @@ const elBgInput    = document.getElementById('bgInput');
 const elShowInd    = document.getElementById('showIndicators');
 const btnToggle    = document.getElementById('togglePanel');
 
-// toggle panel (desktop & HP)
 btnToggle?.addEventListener('click', () => {
   document.body.classList.toggle('panel-collapsed');
   const span = btnToggle.querySelector('span');
-  if (document.body.classList.contains('panel-collapsed')) {
-    span.textContent = 'Tampilkan Panel';
-  } else {
-    span.textContent = 'Sembunyikan Panel';
-  }
+  span.textContent = document.body.classList.contains('panel-collapsed') ? 'Tampilkan Panel' : 'Sembunyikan Panel';
 });
 
-// ====== Defaults slider
+// Default slider (sesuai permintaan)
 elSizeDate.value  = elSizeDate.value  || 40;
 elSizeRow.value   = elSizeRow.value   || 30;
 elSizeHours.value = elSizeHours.value || 35;
-const label = id => document.getElementById(id+'Val');
-if (label('sizeDate'))  label('sizeDate').textContent  = elSizeDate.value;
-if (label('sizeRow'))   label('sizeRow').textContent   = elSizeRow.value;
-if (label('sizeHours')) label('sizeHours').textContent = elSizeHours.value;
+['sizeDate','sizeRow','sizeHours'].forEach(id=>{
+  const el=document.getElementById(id), out=document.getElementById(id+'Val');
+  if (el && out) { out.textContent = el.value; el.addEventListener('input', ()=>{ out.textContent=el.value; render(); }); }
+});
+elHoursCol?.addEventListener('input', render);
+elShowInd?.addEventListener('change', ()=>{ showGuides = elShowInd.checked; render(); });
 
 // ===== Assets
 const ASSETS = {
@@ -66,7 +64,7 @@ const ASSETS = {
   wings: 'wings_logo.png'
 };
 
-// ===== Data (3 baris maksimum)
+// ===== Data (maks 3 baris)
 const state = {
   bgURL: ASSETS.bg,
   arrivals: [
@@ -79,7 +77,7 @@ const state = {
   ]
 };
 
-// ====== Posisi default (SESUIAI koordinat yang kamu minta)
+// ===== Posisi default (sesuai koordinat terbaru)
 const POS_DEFAULT = {
   date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
@@ -118,8 +116,8 @@ const POS_DEFAULT = {
   hours     : { x:702, y:1384, align:'center', color:'#ffffff', h:44 }
 };
 
-// ====== Items & overrides
-const LS_KEY = 'fs_positions_v8';
+// ===== Items & overrides
+const LS_KEY = 'fs_positions_v9';
 let items = [];
 let posOverrides = loadOverrides();
 let showGuides = true;
@@ -147,13 +145,6 @@ function sizes(){
     logoH : Math.round(szRow * 1.05)
   };
 }
-['sizeDate','sizeRow','sizeHours'].forEach(id=>{
-  const el=document.getElementById(id), out=document.getElementById(id+'Val');
-  if(el&&out) el.addEventListener('input',()=>{ out.textContent=el.value; render(); });
-});
-elHoursCol?.addEventListener('input', render);
-elShowInd?.addEventListener('change', ()=>{ showGuides = elShowInd.checked; render(); });
-
 function buildItems(){
   items=[];
   items.push({ id:'date', kind:'text', getText:()=> (elDate?.value||'').toUpperCase() });
@@ -191,7 +182,10 @@ const IMG={};
 function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 async function getImg(src){ if(!src) return null; if(!IMG[src]) IMG[src]=await loadImage(src); return IMG[src]; }
 
-// editor baris (maks 3)
+// UI rows (maks 3)
+const arrivalsWrap   = document.getElementById('arrivals');
+const departuresWrap = document.getElementById('departures');
+
 function renderRowEditors(){
   const build = (wrap, listName) => {
     const data = state[listName];
@@ -210,16 +204,13 @@ function renderRowEditors(){
         const k=inp.dataset.k;
         inp.oninput=()=>{ state[listName][idx][k]=inp.value; render(); };
       });
-      box.querySelector('button').onclick=()=>{ state[listName].splice(idx,1); renderRowEditors(); render(); buildItems(); };
+      box.querySelector('button').onclick=()=>{ state[listName].splice(idx,1); buildItems(); renderRowEditors(); render(); };
       wrap.appendChild(box);
     });
   };
-  renderRowEditors._skip = true;
   build(arrivalsWrap,'arrivals');
   build(departuresWrap,'departures');
 }
-const arrivalsWrap   = document.getElementById('arrivals');
-const departuresWrap = document.getElementById('departures');
 renderRowEditors();
 
 document.getElementById('addArrival')?.addEventListener('click', ()=>{
@@ -233,7 +224,7 @@ document.getElementById('addDeparture')?.addEventListener('click', ()=>{
   buildItems(); renderRowEditors(); render();
 });
 
-// hit-rect
+// ====== Helper: bounding box item (text/logo)
 async function getRectForItem(it){
   const p = getPos(it.id);
   if(it.kind==='airline'){
@@ -255,9 +246,24 @@ async function getRectForItem(it){
   return { x:x0, y:y0, w, h:p.h+8 };
 }
 
-// render (dengan indikator)
+// ====== Garis pemisah antar baris (mengikuti posisi yang aktif/drag)
+function drawRowSeparators(section, count){
+  // section: 'arr' | 'dep'; count: 1..3
+  const x1 = 40, x2 = 1040;  // panjang garis
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.lineWidth = 3;
+  for(let i=0;i<count;i++){
+    const pos = getPos(`${section}_${i}_time`);
+    const y = pos.y + 22; // offset tepat di bawah isi baris
+    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ====== Render
 async function render(){
-  // background
+  // pilih bg (dropdown)
   if(elBgSelect){
     const v=elBgSelect.value;
     state.bgURL = (v===ASSETS.bg2 ? ASSETS.bg2 : v===ASSETS.bg3 ? ASSETS.bg3 : ASSETS.bg);
@@ -266,6 +272,11 @@ async function render(){
   ctx.clearRect(0,0,BASE_W,BASE_H);
   if(bg) ctx.drawImage(bg,0,0,BASE_W,BASE_H);
 
+  // Garis pemisah dinamis (jumlah baris aktif)
+  drawRowSeparators('arr', Math.min(3, state.arrivals.length));
+  drawRowSeparators('dep', Math.min(3, state.departures.length));
+
+  // Gambar item teks/logo
   for(let i=0;i<items.length;i++){
     const it = items[i];
     const p = getPos(it.id);
@@ -302,7 +313,7 @@ async function render(){
   }
 }
 
-// pointer skala dari ukuran CSS -> basis 1080x1920
+// pointer skala dari ukuran CSS → basis 1080x1920
 function pointer(e){
   const r = c.getBoundingClientRect();
   const clientX = (e.touches ? e.touches[0].clientX : e.clientX);
@@ -373,7 +384,7 @@ document.getElementById('savePdf')?.addEventListener('click', async ()=>{
   pdf.save(`flight-schedule-${Date.now()}.pdf`);
 });
 
-// pertama kali
+// awal
 render().catch(err=>{
   console.warn('Render gagal:', err);
   ctx.fillStyle='#10a7b5'; ctx.fillRect(0,0,BASE_W,BASE_H);
