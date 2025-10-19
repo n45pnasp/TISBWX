@@ -1,12 +1,8 @@
 /******************************************************************
- * jadwal.js — v7 (final)
- * - Koordinat default sesuai rekomendasi terbaru
- * - Maks 3 baris ARR/DEP
- * - Responsif + Hi-DPI (tajam di retina/HP)
- * - Indikator ID + Koordinat (toggle)
- * - Drag & drop presisi, posisi tersimpan (localStorage)
- * - Logo maskapai otomatis (Super Air Jet / Wings Air)
- * - Garis pemisah antar baris (dinamis mengikuti jumlah baris & drag)
+ * jadwal.js — v8 (final)
+ * - Garis pemisah mengikuti lebar kotak putih tabel (ARR & DEP)
+ * - Nama file download: scheduleflightbwx_tglBlnTahun.png/pdf
+ * - Maks 3 baris, drag, indikator, DPI-aware, logo otomatis
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -21,7 +17,7 @@ function applyDPR() {
   const dpr = Math.max(1, window.devicePixelRatio || 1);
   c.width  = BASE_W * dpr;
   c.height = BASE_H * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // pakai unit basis
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 applyDPR();
 window.addEventListener('resize', () => { applyDPR(); render(); });
@@ -44,7 +40,7 @@ btnToggle?.addEventListener('click', () => {
   span.textContent = document.body.classList.contains('panel-collapsed') ? 'Tampilkan Panel' : 'Sembunyikan Panel';
 });
 
-// Default slider (sesuai permintaan)
+// Default slider
 elSizeDate.value  = elSizeDate.value  || 40;
 elSizeRow.value   = elSizeRow.value   || 30;
 elSizeHours.value = elSizeHours.value || 35;
@@ -77,7 +73,7 @@ const state = {
   ]
 };
 
-// ===== Posisi default (sesuai koordinat terbaru)
+// ===== Posisi default (koordinat final)
 const POS_DEFAULT = {
   date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
@@ -117,7 +113,7 @@ const POS_DEFAULT = {
 };
 
 // ===== Items & overrides
-const LS_KEY = 'fs_positions_v9';
+const LS_KEY = 'fs_positions_v10';
 let items = [];
 let posOverrides = loadOverrides();
 let showGuides = true;
@@ -208,8 +204,12 @@ function renderRowEditors(){
       wrap.appendChild(box);
     });
   };
+  renderItemsCountHints();
   build(arrivalsWrap,'arrivals');
   build(departuresWrap,'departures');
+}
+function renderItemsCountHints(){
+  // optional hook if you want show counts, noop here
 }
 renderRowEditors();
 
@@ -246,17 +246,35 @@ async function getRectForItem(it){
   return { x:x0, y:y0, w, h:p.h+8 };
 }
 
+// ====== Batas kiri/kanan tabel agar garis sama lebar kotak putih
+function tableBounds(section){
+  // kiri: posisi kolom airlines terkiri; kanan: posisi kolom time (right-aligned)
+  let left = Infinity;
+  let right = -Infinity;
+  for(let i=0;i<3;i++){
+    const a = POS_DEFAULT[`${section}_${i}_airline`] ? getPos(`${section}_${i}_airline`).x : null;
+    const t = POS_DEFAULT[`${section}_${i}_time`]    ? getPos(`${section}_${i}_time`).x    : null;
+    if(a!=null) left = Math.min(left, a);
+    if(t!=null) right = Math.max(right, t); // kolom time right-aligned: ujung kanan = p.x
+  }
+  if(!isFinite(left)) left = 60;
+  if(!isFinite(right)) right = 1020;
+  // padding kecil supaya masuk di dalam kotak putih
+  left  = Math.max(40, left - 17);
+  right = Math.min(1040, right - 0);
+  return { left, right };
+}
+
 // ====== Garis pemisah antar baris (mengikuti posisi yang aktif/drag)
 function drawRowSeparators(section, count){
-  // section: 'arr' | 'dep'; count: 1..3
-  const x1 = 40, x2 = 1040;  // panjang garis
+  const bounds = tableBounds(section);
   ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,0.95)';
   ctx.lineWidth = 3;
   for(let i=0;i<count;i++){
     const pos = getPos(`${section}_${i}_time`);
-    const y = pos.y + 22; // offset tepat di bawah isi baris
-    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+    const y = pos.y + 22; // sedikit di bawah teks
+    ctx.beginPath(); ctx.moveTo(bounds.left, y); ctx.lineTo(bounds.right, y); ctx.stroke();
   }
   ctx.restore();
 }
@@ -369,10 +387,28 @@ elBgInput?.addEventListener('change', (e)=>{
   r.readAsDataURL(f);
 });
 
+// ===== Nama file: scheduleflightbwx_tglBlnTahun.ext
+function buildFilename(ext){
+  const raw = (elDate?.value || '').replace(/,/g,' ').trim();
+  // Cari pola: angka (tgl), kata (bulan), angka 4 digit (tahun)
+  const m = raw.match(/(\d{1,2})\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})/i);
+  let tgl=''; let bln=''; let th='';
+  if(m){
+    tgl = m[1];
+    bln = m[2].toLowerCase().replace(/^\p{L}/u, ch => ch.toUpperCase()); // Kapital awal
+    th  = m[3];
+  }else{
+    // fallback: buang spasi → jadi satu
+    const safe = raw.replace(/\s+/g,'');
+    return `scheduleflightbwx_${safe || 'poster'}.${ext}`;
+  }
+  return `scheduleflightbwx_${tgl}${bln}${th}.${ext}`;
+}
+
 // actions
 document.getElementById('renderBtn')?.addEventListener('click', render);
 document.getElementById('savePng')?.addEventListener('click', ()=>{
-  const a=document.createElement('a'); a.download=`flight-schedule-${Date.now()}.png`; a.href=c.toDataURL('image/png'); a.click();
+  const a=document.createElement('a'); a.download=buildFilename('png'); a.href=c.toDataURL('image/png'); a.click();
 });
 document.getElementById('savePdf')?.addEventListener('click', async ()=>{
   if(!window.jspdf){
@@ -381,11 +417,11 @@ document.getElementById('savePdf')?.addEventListener('click', async ()=>{
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({orientation:'p', unit:'px', format:[BASE_W, BASE_H]});
   pdf.addImage(c.toDataURL('image/jpeg',0.96),'JPEG',0,0,BASE_W,BASE_H);
-  pdf.save(`flight-schedule-${Date.now()}.pdf`);
+  pdf.save(buildFilename('pdf'));
 });
 
 // awal
 render().catch(err=>{
   console.warn('Render gagal:', err);
-  ctx.fillStyle='#10a7b5'; ctx.fillRect(0,0,BASE_W,BASE_H);
+  ctx.fillStyle='#10a7b5'; ctx.fillRect(0,0,c.width,c.height);
 });
