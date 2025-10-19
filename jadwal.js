@@ -1,5 +1,5 @@
 /******************************************************************
- * jadwal.js — v8 (final)
+ * jadwal.js — v9 (final)
  * - Garis pemisah mengikuti lebar kotak putih tabel (ARR & DEP)
  * - Nama file download: scheduleflightbwx_tglBlnTahun.png/pdf
  * - Maks 3 baris, drag, indikator, DPI-aware, logo otomatis
@@ -40,10 +40,11 @@ btnToggle?.addEventListener('click', () => {
   span.textContent = document.body.classList.contains('panel-collapsed') ? 'Tampilkan Panel' : 'Sembunyikan Panel';
 });
 
-// Default slider
-elSizeDate.value  = elSizeDate.value  || 40;
-elSizeRow.value   = elSizeRow.value   || 30;
-elSizeHours.value = elSizeHours.value || 35;
+// Default slider (40/30/35)
+if (!elSizeDate.value)  elSizeDate.value  = 40;
+if (!elSizeRow.value)   elSizeRow.value   = 30;
+if (!elSizeHours.value) elSizeHours.value = 35;
+
 ['sizeDate','sizeRow','sizeHours'].forEach(id=>{
   const el=document.getElementById(id), out=document.getElementById(id+'Val');
   if (el && out) { out.textContent = el.value; el.addEventListener('input', ()=>{ out.textContent=el.value; render(); }); }
@@ -57,7 +58,9 @@ const ASSETS = {
   bg2: 'bahan_flyer_bwx2.png',
   bg3: 'bahan_flyer_bwx3.png',
   super: 'super_air_jet_logo.png',
-  wings: 'wings_logo.png'
+  wings: 'wings_logo.png',
+  batik: 'batik_logo.png',
+  citilink: 'citilink_logo.png'
 };
 
 // ===== Data (maks 3 baris)
@@ -65,11 +68,11 @@ const state = {
   bgURL: ASSETS.bg,
   arrivals: [
     { airline:'SUPER AIR JET', flight:'IU 370', city:'JAKARTA',  time:'10:15 WIB' },
-    { airline:'WINGS AIR',     flight:'IW 1880', city:'SURABAYA', time:'12.40 WIB' }
+    { airline:'WINGS AIR',     flight:'IW 1880', city:'SURABAYA', time:'12:40 WIB' }
   ],
   departures: [
     { airline:'SUPER AIR JET', flight:'IU 371', city:'JAKARTA',  time:'10:55 WIB' },
-    { airline:'WINGS AIR',     flight:'IW 1881', city:'SURABAYA', time:'13.00 WIB' }
+    { airline:'WINGS AIR',     flight:'IW 1881', city:'SURABAYA', time:'13:00 WIB' }
   ]
 };
 
@@ -77,7 +80,7 @@ const state = {
 const POS_DEFAULT = {
   date      : { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
 
-  // ARR (y: 689, 763, 852)
+  // ARR (y: 689, 763, 852) – logo sedikit lebih naik agar sejajar
   arr_0_airline:{ x:57,  y:676, align:'left',  color:'#ffffff', h:40, kind:'airline' },
   arr_0_flight :{ x:366, y:689, align:'left',  color:'#ffffff', h:40 },
   arr_0_city   :{ x:630, y:689, align:'left',  color:'#ffffff', h:40 },
@@ -121,10 +124,13 @@ let showGuides = true;
 function airlineLogo(text){
   if(!text) return null;
   const s = text.toLowerCase();
-  if (s.includes('super')) return ASSETS.super;
-  if (s.includes('wings')) return ASSETS.wings;
+  if (s.includes('super'))   return ASSETS.super;
+  if (s.includes('wings'))   return ASSETS.wings;
+  if (s.includes('batik'))   return ASSETS.batik;
+  if (s.includes('citilink'))return ASSETS.citilink;
   return null;
 }
+
 function sizes(){
   const szDate  = +elSizeDate?.value  || 40;
   const szRow   = +elSizeRow?.value   || 30;
@@ -141,6 +147,7 @@ function sizes(){
     logoH : Math.round(szRow * 1.05)
   };
 }
+
 function buildItems(){
   items=[];
   items.push({ id:'date', kind:'text', getText:()=> (elDate?.value||'').toUpperCase() });
@@ -204,12 +211,8 @@ function renderRowEditors(){
       wrap.appendChild(box);
     });
   };
-  renderItemsCountHints();
   build(arrivalsWrap,'arrivals');
   build(departuresWrap,'departures');
-}
-function renderItemsCountHints(){
-  // optional hook if you want show counts, noop here
 }
 renderRowEditors();
 
@@ -248,20 +251,20 @@ async function getRectForItem(it){
 
 // ====== Batas kiri/kanan tabel agar garis sama lebar kotak putih
 function tableBounds(section){
-  // kiri: posisi kolom airlines terkiri; kanan: posisi kolom time (right-aligned)
-  let left = Infinity;
-  let right = -Infinity;
+  let left = Infinity, right = -Infinity;
   for(let i=0;i<3;i++){
     const a = POS_DEFAULT[`${section}_${i}_airline`] ? getPos(`${section}_${i}_airline`).x : null;
     const t = POS_DEFAULT[`${section}_${i}_time`]    ? getPos(`${section}_${i}_time`).x    : null;
-    if(a!=null) left = Math.min(left, a);
-    if(t!=null) right = Math.max(right, t); // kolom time right-aligned: ujung kanan = p.x
+    if(a!=null) left  = Math.min(left,  a);
+    if(t!=null) right = Math.max(right, t); // kolom TIME right-aligned
   }
-  if(!isFinite(left)) left = 60;
+  if(!isFinite(left))  left  = 60;
   if(!isFinite(right)) right = 1020;
-  // padding kecil supaya masuk di dalam kotak putih
-  left  = Math.max(40, left - 0);
-  right = Math.min(1040, right - 0);
+
+  // padding agar benar-benar “masuk” ke dalam kotak putih tabel
+  left  = Math.max(40,  left  - 8);   // geser sedikit ke kanan
+  right = Math.min(1040, right - 10); // pendekkan sedikit di kanan
+
   return { left, right };
 }
 
@@ -390,15 +393,13 @@ elBgInput?.addEventListener('change', (e)=>{
 // ===== Nama file: scheduleflightbwx_tglBlnTahun.ext
 function buildFilename(ext){
   const raw = (elDate?.value || '').replace(/,/g,' ').trim();
-  // Cari pola: angka (tgl), kata (bulan), angka 4 digit (tahun)
   const m = raw.match(/(\d{1,2})\s+([A-Za-zÀ-ÿ]+)\s+(\d{4})/i);
   let tgl=''; let bln=''; let th='';
   if(m){
     tgl = m[1];
-    bln = m[2].toLowerCase().replace(/^\p{L}/u, ch => ch.toUpperCase()); // Kapital awal
+    bln = m[2].toLowerCase().replace(/^\p{L}/u, ch => ch.toUpperCase());
     th  = m[3];
   }else{
-    // fallback: buang spasi → jadi satu
     const safe = raw.replace(/\s+/g,'');
     return `scheduleflightbwx_${safe || 'poster'}.${ext}`;
   }
