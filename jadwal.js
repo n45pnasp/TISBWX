@@ -223,13 +223,15 @@ function renderRowEditors(){
     data.forEach((row, idx)=>{
       const isArr = (listName==='arrivals');
       const airlineId = `${isArr ? 'arr':'dep'}_${idx}_airline`;
+      // === PERUBAHAN DI SINI: placeholder beda ARR/DEP
+      const cityPlaceholder = isArr ? 'Origin' : 'Destination';
 
       const box=document.createElement('div');
       box.className='airline-row';
       box.innerHTML=`
         <input placeholder="Airlines (Super Air Jet / Wings Air)" value="${row.airline||''}" data-k="airline">
         <input placeholder="Flight No" value="${row.flight||''}" data-k="flight">
-        <input placeholder="Origin/Dest" maxlength="10" value="${row.city||''}" data-k="city">
+        <input placeholder="${cityPlaceholder}" maxlength="10" value="${row.city||''}" data-k="city">
         <input placeholder="Time" value="${row.time||''}" data-k="time">
         <button type="button" title="Hapus">✕</button>
         ${miniLogoControls(airlineId)}
