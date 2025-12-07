@@ -1,5 +1,5 @@
 /******************************************************************
- * jadwal.js — v20 (Restore Drag Functionality + Toggle Lock)
+ * jadwal.js — v21 (Fix Month Undefined & Auto-Update Date)
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -110,12 +110,12 @@ function loadConfig() {
 function updateLockUI() {
   if (isLocked) {
     btnLock.innerHTML = "🔒 Posisi Terkunci (Klik Buka)";
-    btnLock.style.background = "#ef4444"; // Merah
+    btnLock.style.background = "#ef4444"; 
     btnLock.style.color = "#ffffff";
     btnLock.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.4)";
   } else {
     btnLock.innerHTML = "🔓 Kunci & Simpan Pengaturan";
-    btnLock.style.background = "#f59e0b"; // Kuning Emas
+    btnLock.style.background = "#f59e0b"; 
     btnLock.style.color = "#0f172a";
     btnLock.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.4)";
   }
@@ -123,11 +123,10 @@ function updateLockUI() {
 
 // Listener Tombol Kunci (Toggle)
 btnLock?.addEventListener('click', () => {
-  isLocked = !isLocked; // Toggle status
+  isLocked = !isLocked; 
   updateLockUI();
 
   if (isLocked) {
-    // Simpan saat dikunci
     const config = {
       sizeDate: elSizeDate?.value || 40,
       sizeRow: elSizeRow?.value || 30,
@@ -364,15 +363,19 @@ const IMG={};
 function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 async function getImg(src){ if(!src) return null; if(!IMG[src]) IMG[src]=await loadImage(src); return IMG[src]; }
 
-// Date Helper
+// ===== DATE HELPER (PERBAIKAN DI SINI) =====
 const ID_DAYS = ['MINGGU','SENIN','SELASA','RABU','KAMIS','JUMAT','SABTU'];
 const ID_MONTHS = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+
+function daysInMonth(y, mIdx){ return new Date(y, mIdx+1, 0).getDate(); }
 
 function populateDateDropdowns(){
   const now = new Date();
   if(!selDay) return;
   
-  selMonth.innerHTML = ID_MONTHS.map((m,i)=>`<option value="${m.idx}">${m.label}</option>`).join('');
+  // FIX 1: Generate Month Options dengan benar (tanpa undefined)
+  selMonth.innerHTML = ID_MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
+  
   selYear.innerHTML = [now.getFullYear(), now.getFullYear()+1].map(y=>`<option value="${y}">${y}</option>`).join('');
   
   const refreshDays = () => {
@@ -382,13 +385,31 @@ function populateDateDropdowns(){
   };
   
   selMonth.onchange = refreshDays; selYear.onchange = refreshDays;
-  selMonth.value = now.getMonth(); selYear.value = now.getFullYear(); refreshDays(); selDay.value = now.getDate();
+  
+  // Set dropdown ke hari ini
+  selMonth.value = now.getMonth(); 
+  selYear.value = now.getFullYear(); 
+  refreshDays(); 
+  selDay.value = now.getDate();
 
   btnDateGo.onclick = () => {
-     const d = new Date(+selYear.value, +selMonth.value, +selDay.value);
-     elDate.value = `${ID_DAYS[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-     render();
+     applyDateFromDropdown();
   };
+
+  // FIX 2: Langsung terapkan tanggal hari ini ke Textbox Input saat halaman dibuka
+  applyDateFromDropdown();
+}
+
+function applyDateFromDropdown(){
+  const d = +selDay.value;
+  const mIdx = +selMonth.value; 
+  const y = +selYear.value;
+  const jsDate = new Date(y, mIdx, d);
+  const dayName = ID_DAYS[jsDate.getDay()];
+  const monthName = ID_MONTHS[mIdx];
+  const text = `${dayName}, ${String(d).padStart(2,'0')} ${monthName} ${y}`;
+  if(elDate){ elDate.value = text; }
+  render();
 }
 populateDateDropdowns();
 
@@ -479,41 +500,12 @@ async function render(){
   }
 }
 
-async function getRectForItem(it){
-  const p = getPos(it.id);
-  if(it.kind==='airline'){
-    const file = airlineLogo(it.getText());
-    const S = sizes();
-    const scale = getLogoScale(it.id);
-    const H = Math.max(10, S.logoBaseH * scale);
-    if(file){
-      const img=await getImg(file);
-      const W = H * (img.width/img.height);
-      let x0=p.x; if(p.align==='center') x0-=W/2; else if(p.align==='right') x0-=W;
-      const y0=p.y - H/2;
-      return { x:x0, y:y0, w:W, h:H };
-    }
-  }
-  ctx.save(); ctx.font=p.font;
-  const w=Math.max(10, ctx.measureText(it.getText()).width);
-  ctx.restore();
-  let x0=p.x; if(p.align==='center') x0-=w/2; else if(p.align==='right') x0-=w;
-  const y0=p.y - p.h + 6;
-  return { x:x0, y:y0, w, h:p.h+8 };
-}
-
-function pointer(e){
-  const r = c.getBoundingClientRect();
-  const cx = (e.touches?e.touches[0].clientX:e.clientX), cy = (e.touches?e.touches[0].clientY:e.clientY);
-  return { x: (cx-r.left)*(BASE_W/r.width), y: (cy-r.top)*(BASE_H/r.height) };
-}
-
-// ===== DRAG & DROP ENGINE (RESTORED v16 + LOCK) =====
+// ===== DRAG & DROP ENGINE =====
 let dragging=null;
 let resizingLogo=null; 
 
 async function onDown(e){
-  if(isLocked) return; // Prevent drag if locked
+  if(isLocked) return; // Kunci aktif -> Stop geser
 
   const p = pointer(e);
   for(let i=items.length-1;i>=0;i--){
@@ -523,7 +515,6 @@ async function onDown(e){
       if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
         const pos=getPos(it.id);
         
-        // Cek shift key / multitouch untuk resize logo
         if (it.kind==='airline' && (e.shiftKey || (e.touches && e.touches.length===2))) {
           const cur = getLogoScale(it.id);
           resizingLogo = { id: it.id, startY: p.y, startScale: cur };
@@ -565,7 +556,13 @@ function onUp(){
   dragging=null; resizingLogo=null; 
 }
 
-// Event Bindings (Restored)
+function pointer(e){
+  const r = c.getBoundingClientRect();
+  const cx = (e.touches?e.touches[0].clientX:e.clientX), cy = (e.touches?e.touches[0].clientY:e.clientY);
+  return { x: (cx-r.left)*(BASE_W/r.width), y: (cy-r.top)*(BASE_H/r.height) };
+}
+
+// Event Bindings
 c.addEventListener('mousedown', onDown);
 window.addEventListener('mousemove', onMove);
 window.addEventListener('mouseup', onUp);
