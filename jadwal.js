@@ -1,5 +1,5 @@
 /******************************************************************
- * jadwal.js — v19 (Restored Grid/Labels & Desktop Layout)
+ * jadwal.js — v20 (Restore Drag Functionality + Toggle Lock)
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -32,6 +32,9 @@ const elBgInput    = document.getElementById('bgInput');
 const elShowInd    = document.getElementById('showIndicators');
 const btnToggle    = document.getElementById('togglePanel');
 const btnLock      = document.getElementById('lockSettings');
+
+// State Pengunci
+let isLocked = false; 
 
 // Date Dropdowns
 const selDay    = document.getElementById('selDay');
@@ -77,12 +80,11 @@ function injectColorPresets() {
         };
         container.appendChild(btn);
     });
-    
     elAllTextHex.parentNode.appendChild(container);
 }
 setTimeout(injectColorPresets, 100);
 
-// ===== FITUR SAVE / LOAD CONFIG =====
+// ===== FITUR SAVE / LOAD & LOCK CONFIG =====
 const LS_CONFIG = 'fs_config_v1';
 
 function loadConfig() {
@@ -104,19 +106,37 @@ function loadConfig() {
   }
 }
 
+// Update Tampilan Tombol Kunci
+function updateLockUI() {
+  if (isLocked) {
+    btnLock.innerHTML = "🔒 Posisi Terkunci (Klik Buka)";
+    btnLock.style.background = "#ef4444"; // Merah
+    btnLock.style.color = "#ffffff";
+    btnLock.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.4)";
+  } else {
+    btnLock.innerHTML = "🔓 Kunci & Simpan Pengaturan";
+    btnLock.style.background = "#f59e0b"; // Kuning Emas
+    btnLock.style.color = "#0f172a";
+    btnLock.style.boxShadow = "0 4px 12px rgba(245, 158, 11, 0.4)";
+  }
+}
+
+// Listener Tombol Kunci (Toggle)
 btnLock?.addEventListener('click', () => {
-  const config = {
-    sizeDate: elSizeDate?.value || 40,
-    sizeRow: elSizeRow?.value || 30,
-    sizeHours: elSizeHours?.value || 35,
-    hoursColor: elHoursCol?.value || '#ffffff',
-    globalColor: state.globalColor || '#ffffff'
-  };
-  localStorage.setItem(LS_CONFIG, JSON.stringify(config));
-  
-  const oriText = btnLock.innerHTML;
-  btnLock.innerHTML = "✅ Tersimpan!";
-  setTimeout(() => btnLock.innerHTML = oriText, 1500);
+  isLocked = !isLocked; // Toggle status
+  updateLockUI();
+
+  if (isLocked) {
+    // Simpan saat dikunci
+    const config = {
+      sizeDate: elSizeDate?.value || 40,
+      sizeRow: elSizeRow?.value || 30,
+      sizeHours: elSizeHours?.value || 35,
+      hoursColor: elHoursCol?.value || '#ffffff',
+      globalColor: state.globalColor || '#ffffff'
+    };
+    localStorage.setItem(LS_CONFIG, JSON.stringify(config));
+  }
 });
 
 [elSizeDate, elSizeRow, elSizeHours, elHoursCol].forEach(el => {
@@ -293,7 +313,6 @@ function renderRowEditors(){
       const box=document.createElement('div');
       box.className='airline-row';
       
-      // Structure: Inputs First -> Button -> Logo Controls
       box.innerHTML=`
         <input placeholder="Maskapai" value="${row.airline||''}" data-k="airline">
         <input placeholder="No Flight" value="${row.flight||''}" data-k="flight">
@@ -429,13 +448,11 @@ async function render(){
         
         ctx.drawImage(drawObj,x,y,W,H);
         
-        // Restore Grid Box + ID Label
         if(showGuides){
            ctx.save(); 
            ctx.shadowColor='transparent'; 
            ctx.strokeStyle='#00ffff88'; ctx.lineWidth=2; 
            ctx.strokeRect(x,y,W,H); 
-           // Kembalikan teks ID
            ctx.fillStyle='#00ffff'; ctx.font='700 16px Montserrat, system-ui'; ctx.textAlign='left';
            ctx.fillText(`${it.id}`, x, Math.max(16,y-6));
            ctx.restore();
@@ -448,7 +465,6 @@ async function render(){
     ctx.font=p.font; ctx.fillStyle=p.color; ctx.textAlign=p.align; ctx.textBaseline='alphabetic';
     ctx.fillText(txt, p.x, p.y);
     
-    // Restore Grid Box + ID Label untuk Teks
     if(showGuides){
        const w = ctx.measureText(txt).width;
        let x0=p.x; if(p.align==='center') x0-=w/2; else if(p.align==='right') x0-=w;
@@ -463,14 +479,28 @@ async function render(){
   }
 }
 
-let dragging=null;
-const getRect = async (it) => { 
+async function getRectForItem(it){
   const p = getPos(it.id);
-  ctx.save(); ctx.font=p.font; 
-  const w = ctx.measureText(it.getText()).width; ctx.restore();
-  let x=p.x; if(p.align==='center') x-=w/2; else if(p.align==='right') x-=w;
-  return {x, y:p.y-p.h, w, h:p.h};
-};
+  if(it.kind==='airline'){
+    const file = airlineLogo(it.getText());
+    const S = sizes();
+    const scale = getLogoScale(it.id);
+    const H = Math.max(10, S.logoBaseH * scale);
+    if(file){
+      const img=await getImg(file);
+      const W = H * (img.width/img.height);
+      let x0=p.x; if(p.align==='center') x0-=W/2; else if(p.align==='right') x0-=W;
+      const y0=p.y - H/2;
+      return { x:x0, y:y0, w:W, h:H };
+    }
+  }
+  ctx.save(); ctx.font=p.font;
+  const w=Math.max(10, ctx.measureText(it.getText()).width);
+  ctx.restore();
+  let x0=p.x; if(p.align==='center') x0-=w/2; else if(p.align==='right') x0-=w;
+  const y0=p.y - p.h + 6;
+  return { x:x0, y:y0, w, h:p.h+8 };
+}
 
 function pointer(e){
   const r = c.getBoundingClientRect();
@@ -478,30 +508,71 @@ function pointer(e){
   return { x: (cx-r.left)*(BASE_W/r.width), y: (cy-r.top)*(BASE_H/r.height) };
 }
 
-c.addEventListener('mousedown', async e => {
+// ===== DRAG & DROP ENGINE (RESTORED v16 + LOCK) =====
+let dragging=null;
+let resizingLogo=null; 
+
+async function onDown(e){
+  if(isLocked) return; // Prevent drag if locked
+
   const p = pointer(e);
   for(let i=items.length-1;i>=0;i--){
     const it=items[i];
-    const r=await getRectForItem(it);
-    if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
-      const pos=getPos(it.id);
-      dragging={ id:it.id, offX: pos.x-p.x, offY: pos.y-p.y };
-      return;
-    }
+    try {
+      const r=await getRectForItem(it);
+      if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
+        const pos=getPos(it.id);
+        
+        // Cek shift key / multitouch untuk resize logo
+        if (it.kind==='airline' && (e.shiftKey || (e.touches && e.touches.length===2))) {
+          const cur = getLogoScale(it.id);
+          resizingLogo = { id: it.id, startY: p.y, startScale: cur };
+        } else {
+          dragging={ id:it.id, offX: pos.x-p.x, offY: pos.y-p.y };
+        }
+        e.preventDefault(); 
+        return;
+      }
+    } catch(err){}
   }
-});
+}
 
-c.addEventListener('mousemove', e => {
-  if(!dragging) return;
-  const p = pointer(e);
-  posOverrides[dragging.id]={ x:Math.round(p.x+dragging.offX), y:Math.round(p.y+dragging.offY) };
-  render();
-});
+function onMove(e){
+  if(isLocked) return;
 
-window.addEventListener('mouseup', ()=>{
-  if(dragging) saveJSON(LS_POS, posOverrides);
-  dragging=null;
-});
+  const p=pointer(e);
+  
+  if(resizingLogo){
+    e.preventDefault();
+    const dy = (p.y - resizingLogo.startY);
+    const newScale = Math.max(0.1, Math.min(3.0, resizingLogo.startScale * (1 + dy/240)));
+    setLogoScale(resizingLogo.id, newScale);
+    render();
+    return;
+  }
+  
+  if(dragging){
+    e.preventDefault();
+    posOverrides[dragging.id]={ x:Math.round(p.x+dragging.offX), y:Math.round(p.y+dragging.offY) };
+    render();
+  }
+}
+
+function onUp(){ 
+  if(dragging || resizingLogo) {
+     saveJSON(LS_POS, posOverrides); 
+  }
+  dragging=null; resizingLogo=null; 
+}
+
+// Event Bindings (Restored)
+c.addEventListener('mousedown', onDown);
+window.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onUp);
+
+c.addEventListener('touchstart', onDown, {passive:false});
+window.addEventListener('touchmove', onMove, {passive:false});
+window.addEventListener('touchend', onUp);
 
 elBgSelect?.addEventListener('change', render);
 elBgInput?.addEventListener('change', e => {
@@ -529,5 +600,6 @@ document.getElementById('savePdf')?.addEventListener('click', async ()=>{
 
 // INITIAL LOAD
 loadConfig();
+updateLockUI();
 renderRowEditors();
 render();
