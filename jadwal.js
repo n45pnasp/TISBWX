@@ -1,11 +1,10 @@
 /******************************************************************
- * jadwal.js — v14 (final)
- * - Dropdown tanggal (bulan start dari bulan sekarang) → format:
- *   HARI, DD BULAN YYYY langsung isi ke dateText
- * - Logo per baris bisa dibesarkan/dikecilkan via tombol - / +
- * - Shift+Drag untuk resize logo di kanvas
- * - Garis pemisah selaras kotak tabel
- * - Retains all previous features (max 3 rows, indicators, DPI)
+ * jadwal.js — v15 (Updated with Themes & Global Color)
+ * - Dropdown tanggal (bulan start dari bulan sekarang)
+ * - Logo resize controls
+ * - Shift+Drag resize
+ * - New Themes added
+ * - Global Text Color Control
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -25,7 +24,7 @@ function applyDPR() {
 applyDPR();
 window.addEventListener('resize', () => { applyDPR(); render(); });
 
-// ===== Controls
+// ===== Controls Existing
 const elDate       = document.getElementById('dateText');
 const elHours      = document.getElementById('hoursText');
 const elSizeDate   = document.getElementById('sizeDate');
@@ -36,6 +35,10 @@ const elBgSelect   = document.getElementById('bgSelect');
 const elBgInput    = document.getElementById('bgInput');
 const elShowInd    = document.getElementById('showIndicators');
 const btnToggle    = document.getElementById('togglePanel');
+
+// ===== Controls Baru (Warna Global)
+const elAllTextColor = document.getElementById('allTextColor');
+const elAllTextHex   = document.getElementById('allTextHex');
 
 // === Date dropdown controls
 const selDay    = document.getElementById('selDay');
@@ -61,11 +64,16 @@ if (!elSizeHours.value) elSizeHours.value = 35;
 elHoursCol?.addEventListener('input', render);
 elShowInd?.addEventListener('change', ()=>{ showGuides = elShowInd.checked; render(); });
 
-// ===== Assets
+// ===== Assets (UPDATED)
 const ASSETS = {
   bg:  'bahan_flyer_bwx.png',
   bg2: 'bahan_flyer_bwx2.png',
   bg3: 'bahan_flyer_bwx3.png',
+  
+  // === TAMBAHAN BARU ===
+  tema1: 'bahan_flyer_bwx_tema1.png',
+  tema2: 'bahan_flyer_bwx_tema2.png',
+
   super: 'super_air_jet_logo.png',
   wings: 'wings_logo.png',
   batik: 'batik_logo.png',
@@ -121,7 +129,7 @@ const POS_DEFAULT = {
   dep_2_city   :{ x:603, y:1234, align:'left',  color:'#ffffff', h:40 },
   dep_2_time   :{ x:1020,y:1234, align:'right', color:'#ffffff', h:40 },
 
-  hours     : { x:702, y:1384, align:'center', color:'#ffffff', h:44 }
+  hours       : { x:702, y:1384, align:'center', color:'#ffffff', h:44 }
 };
 
 // ===== Items & overrides
@@ -135,6 +143,34 @@ let showGuides = true;
 
 function loadJSON(key, def){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(def)); }catch{ return def; } }
 function saveJSON(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+// ===== LOGIC GANTI WARNA GLOBAL (BARU) =====
+function applyGlobalTextColor(color){
+  Object.keys(POS_DEFAULT).forEach(id=>{
+    // jangan ubah warna hours karena sudah punya kontrol sendiri
+    if(id !== 'hours'){
+      POS_DEFAULT[id].color = color;
+    }
+  });
+  render();
+}
+
+// Picker -> Hex
+elAllTextColor?.addEventListener('input', e => {
+  if(elAllTextHex) elAllTextHex.value = e.target.value;
+  applyGlobalTextColor(e.target.value);
+});
+
+// Hex -> Picker
+elAllTextHex?.addEventListener('input', e => {
+  let v = e.target.value;
+  // Validasi format hex sederhana
+  if(/^#([0-9A-F]{3}){1,2}$/i.test(v)){
+    if(elAllTextColor) elAllTextColor.value = v;
+    applyGlobalTextColor(v);
+  }
+});
+// ===========================================
 
 // deteksi file logo
 function airlineLogo(text){
@@ -157,7 +193,7 @@ function sizes(){
     rowFont  : `800 ${szRow}px Montserrat, system-ui, sans-serif`,
     hoursFont: `900 ${szHours}px Montserrat, system-ui, sans-serif`,
     hoursColor: hoursCol,
-    rowH   : Math.round(szRow * 1.2),
+    rowH    : Math.round(szRow * 1.2),
     dateH : Math.round(szDate * 1.12),
     hoursH: Math.round(szHours * 1.12),
     logoBaseH : 34 // tinggi dasar logo (px) – diskalakan per item
@@ -189,7 +225,7 @@ function getPos(id){
   const base = POS_DEFAULT[id];
   const ov = posOverrides[id];
   const S = sizes();
-  let font=S.rowFont, h=S.rowH, color=base.color;
+  let font=S.rowFont, h=S.rowH, color=base.color; // base.color kini bisa berubah via applyGlobalTextColor
   if(id==='date'){ font=S.dateFont; h=S.dateH; }
   if(id==='hours'){ font=S.hoursFont; h=S.hoursH; color=S.hoursColor; }
   return { x: ov?.x ?? base.x, y: ov?.y ?? base.y, align: base.align, color, font, h, _airline: base?.kind==='airline' };
@@ -223,7 +259,7 @@ function renderRowEditors(){
     data.forEach((row, idx)=>{
       const isArr = (listName==='arrivals');
       const airlineId = `${isArr ? 'arr':'dep'}_${idx}_airline`;
-      // === PERUBAHAN DI SINI: placeholder beda ARR/DEP
+      // placeholder beda ARR/DEP
       const cityPlaceholder = isArr ? 'Origin' : 'Destination';
 
       const box=document.createElement('div');
@@ -413,11 +449,13 @@ function drawRowSeparators(section, count){
 
 // ====== Render
 async function render(){
-  // pilih bg (dropdown)
+  // pilih bg (dropdown) - LOGIK DIPERBAIKI DISINI
   if(elBgSelect){
-    const v=elBgSelect.value;
-    state.bgURL = (v===ASSETS.bg2 ? ASSETS.bg2 : v===ASSETS.bg3 ? ASSETS.bg3 : ASSETS.bg);
+    // Langsung ambil value dari <option value="filename">
+    const v = elBgSelect.value;
+    state.bgURL = v;
   }
+  
   const bg = await getImg(state.bgURL);
   ctx.clearRect(0,0,BASE_W,BASE_H);
   if(bg) ctx.drawImage(bg,0,0,BASE_W,BASE_H);
