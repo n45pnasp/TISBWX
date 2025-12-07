@@ -33,14 +33,13 @@
       display: flex;
     }
 
-    /* ===== MAIN CANVAS AREA (Layer Belakang) ===== */
+    /* ===== MAIN CANVAS AREA ===== */
     main {
       flex: 1;
       position: relative;
       display: flex; align-items: center; justify-content: center;
       background-color: #0a1425;
-      background-image: 
-        radial-gradient(circle at 50% 50%, #1e293b 0%, transparent 50%);
+      background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, transparent 50%);
       background-size: 100% 100%;
       z-index: 1;
       padding: 20px;
@@ -58,7 +57,7 @@
       object-fit: contain;
     }
 
-    /* ===== SIDEBAR / PANEL KONTROL (Layer Depan) ===== */
+    /* ===== SIDEBAR ===== */
     aside {
       width: 400px;
       height: 100%;
@@ -77,20 +76,14 @@
       scrollbar-width: thin; scrollbar-color: var(--border) transparent;
     }
     
-    /* State: Panel Collapsed */
-    body.panel-collapsed aside {
-      transform: translateX(-100%);
-      position: absolute;
-    }
+    body.panel-collapsed aside { transform: translateX(-100%); position: absolute; }
     body.panel-collapsed main { margin-left: 0; }
 
-    /* ===== KOMPONEN UI UMUM ===== */
+    /* ===== UI COMPONENTS ===== */
     h2 { margin: 0 0 12px; font-size: 20px; color: var(--accent); letter-spacing: -0.5px; }
-    
     label { display: block; margin-top: 14px; margin-bottom: 6px; font-weight: 600; font-size: 12px; color: #9fb3c9; }
     
-    /* Style Input Default */
-    input[type="text"], input[type="file"], select {
+    input[type="text"], input[type="number"], input[type="file"], select {
       width: 100%; padding: 10px 12px; border-radius: 8px; 
       border: 1px solid var(--border);
       background: var(--input-bg); color: #fff;
@@ -103,9 +96,7 @@
       box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
     }
 
-    input[type="range"] { width: 100%; margin: 4px 0; cursor: pointer; }
-
-    /* Button Styling */
+    /* Buttons */
     .btn {
       background: var(--accent); color: var(--fab-text); 
       border: none; padding: 12px; border-radius: 8px;
@@ -114,59 +105,54 @@
       display: flex; justify-content: center; align-items: center; gap: 8px;
       transition: all 0.2s ease;
     }
-    .btn:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
-    .btn:active { transform: translateY(0) scale(0.98); box-shadow: none; }
-
+    .btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+    .btn:active { transform: translateY(0) scale(0.98); }
     .btn.secondary { background: #334155; color: #e5e7eb; }
-    .btn.secondary:hover { background: #475569; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
     .small { font-size: 11px; color: #94a3b8; display: block; margin-top: 4px; }
     .small-divider { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
     .section-title { margin-top: 18px; font-weight: 700; color: #38bdf8; font-size: 13px; text-transform: uppercase; }
 
-    /* ===== AIRLINE LIST (DESKTOP DEFAULT) ===== */
+    /* ===== AIRLINE LIST (DESKTOP GRID) ===== */
     .airline-list { display: flex; flex-direction: column; gap: 8px; }
     
     .airline-row { 
       display: grid; 
-      grid-template-columns: 1.4fr 0.9fr 1.4fr 0.9fr 32px; 
+      grid-template-columns: 1.6fr 0.9fr 1.4fr 0.9fr 32px; 
       gap: 6px; 
       align-items: center; 
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.05);
       border-radius: 10px;
-      padding: 8px;
+      padding: 10px;
     }
     
     .airline-row input { 
       background: rgba(15, 23, 42, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 6px; 
-      padding: 9px 8px; 
-      font-size: 11px; 
-      font-weight: 600; 
-      color: #f1f5f9;
+      border-radius: 6px; padding: 8px; 
+      font-size: 11px; font-weight: 600; color: #f1f5f9;
       min-width: 0;
       box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); 
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .airline-row input:focus {
-      border-color: var(--accent);
-      background: #020617;
-      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25), inset 0 1px 2px rgba(0,0,0,0.1);
-      transform: translateY(-1px);
-    }
-
+    
     .airline-row button { 
-      background: rgba(239, 68, 68, 0.2); 
-      color: #ef4444;
+      background: rgba(239, 68, 68, 0.2); color: #ef4444;
       border: 1px solid rgba(239, 68, 68, 0.3);
-      margin-top: 0; padding: 0; height: 32px; border-radius: 6px; 
-      transition: all 0.2s;
+      padding: 0; height: 32px; border-radius: 6px; margin:0;
+      cursor: pointer;
     }
-    .airline-row button:hover { 
-      background: #ef4444; color: white; transform: scale(1.05); 
-      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+    .airline-row button:hover { background: #ef4444; color: #fff; }
+
+    /* Logo Control Wrapper */
+    .logo-wrapper {
+      grid-column: 1 / -1; 
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 4px; padding-top: 6px;
+      border-top: 1px dashed rgba(255,255,255,0.1);
+    }
+    .logo-controls input {
+       width: 50px; text-align: center; padding: 4px; height: 28px;
     }
 
     /* Accordion */
@@ -182,7 +168,7 @@
     details[open] summary::after { content: '−'; }
     .details-content { padding: 12px; border-top: 1px solid var(--border); }
 
-    /* FAB Toggle Button */
+    /* FAB Toggle */
     #togglePanel {
       position: fixed; bottom: 24px; right: 24px; z-index: 200;
       background: var(--fab-bg); color: var(--fab-text);
@@ -190,65 +176,35 @@
       font-weight: 700; cursor: pointer; 
       box-shadow: 0 4px 14px rgba(0,0,0,0.4);
       display: flex; justify-content: center; align-items: center;
-      transition: all 0.2s;
     }
-    #togglePanel:hover { transform: scale(1.1); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4); }
-    #togglePanel:active { transform: scale(0.9); }
     #togglePanel svg { width: 26px; height: 26px; stroke-width: 2.5; }
 
-    /* ===== MOBILE RESPONSIVE FIX ===== */
+    /* ===== MOBILE RESPONSIVE ===== */
     @media (max-width: 900px) {
       body { flex-direction: column; }
       main { position: fixed; inset: 0; padding: 16px 16px 80px 16px; }
       canvas { width: 100%; height: 100%; object-fit: contain; }
+      aside { position: fixed; inset: 0; width: 85%; max-width: 340px; box-shadow: 10px 0 40px rgba(0,0,0,0.6); }
       
-      aside {
-        position: fixed; inset: 0; width: 85%; max-width: 340px;
-        box-shadow: 10px 0 40px rgba(0,0,0,0.6);
-      }
+      .airline-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; }
+      .airline-row input { flex: 1 1 45%; min-width: 110px; }
       
-      /* Ubah layout baris maskapai menjadi Flex wrap agar rapi */
-      .airline-row { 
-        display: flex; flex-wrap: wrap; gap: 8px; padding: 12px;
-        grid-template-columns: none; /* Reset grid */
+      .logo-wrapper { 
+        flex: 1 1 auto; 
+        order: 5; 
+        margin-top: 0; border-top: none; padding-top: 0;
       }
-
-      /* Input: 2 kolom (48% masing-masing) */
-      .airline-row input { 
-        flex: 1 1 45%; 
-        min-width: 110px; 
-      }
-
-      /* KONTROL LOGO: Ditaruh di kiri bawah */
-      .airline-row .logo-controls {
-        flex: 1 1 auto; /* Ambil sisa ruang */
-        order: 5; /* Urutan setelah input */
-        margin-top: 0 !important;
-        justify-content: flex-start;
-      }
-
-      /* TOMBOL HAPUS: Kotak kecil di kanan bawah */
-      .airline-row button { 
-        flex: 0 0 38px; /* Fixed width (kotak) */
-        width: 38px !important; 
-        height: 38px; 
-        order: 6; /* Paling akhir */
-        margin-top: 0;
-      }
-
-      /* FAB adjustment */
+      .airline-row button { flex: 0 0 32px; width: 32px !important; order: 6; }
+      
       #togglePanel { bottom: 20px; right: 20px; width: 50px; height: 50px; }
-      #togglePanel svg { width: 24px; height: 24px; }
     }
   </style>
 </head>
 <body class="">
 
-  <button id="togglePanel" aria-label="Toggle Menu">
+  <button id="togglePanel">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="3" y1="12" x2="21" y2="12"></line>
-      <line x1="3" y1="6" x2="21" y2="6"></line>
-      <line x1="3" y1="18" x2="21" y2="18"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
     </svg>
   </button>
 
@@ -260,9 +216,7 @@
       <input id="dateText" type="text" value="MINGGU, 19 OKTOBER 2025" />
 
       <div id="dateBuilder" style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:6px;">
-        <select id="selDay"   aria-label="Tanggal"></select>
-        <select id="selMonth" aria-label="Bulan"></select>
-        <select id="selYear"  aria-label="Tahun"></select>
+        <select id="selDay"></select> <select id="selMonth"></select> <select id="selYear"></select>
         <button class="btn secondary" id="applyDateSmall" type="button" style="margin-top:0; padding:0 12px;">Set</button>
       </div>
       <span class="small">Format otomatis: HARI, DD BULAN YYYY</span>
@@ -275,57 +229,58 @@
         <option value="bahan_flyer_bwx_tema1.png">Tema Baru 1</option>
         <option value="bahan_flyer_bwx_tema2.png">Tema Baru 2</option>
       </select>
+      <input type="file" id="bgInput" accept="image/*" style="margin-top:6px;" />
 
-      <label>Atau unggah file background manual</label>
-      <input type="file" id="bgInput" accept="image/*" />
-
-      <div class="section-title">KEDATANGAN / ARRIVAL (maks 3 baris)</div>
+      <div class="section-title">KEDATANGAN / ARRIVAL</div>
       <div id="arrivals" class="airline-list"></div>
       <button class="btn secondary" id="addArrival">+ Tambah Baris Kedatangan</button>
 
-      <div class="section-title">KEBERANGKATAN / DEPARTURE (maks 3 baris)</div>
+      <div class="section-title">KEBERANGKATAN / DEPARTURE</div>
       <div id="departures" class="airline-list"></div>
       <button class="btn secondary" id="addDeparture">+ Tambah Baris Keberangkatan</button>
 
-      <details>
+      <details open>
         <summary>Pengaturan Teks & Ukuran</summary>
         <div class="details-content">
-          <label>Operating Hours (teks di kotak hijau)</label>
+          <label>Teks Operating Hours</label>
           <input id="hoursText" type="text" value="Operating Hours 06.00 - 18.00 WIB" />
           
           <hr class="small-divider">
-
-          <label>Ukuran Huruf – Tanggal (px): <span id="sizeDateVal">40</span></label>
-          <input id="sizeDate" type="range" min="28" max="72" step="1" value="40">
           
-          <label>Ukuran Huruf – Baris Jadwal (px): <span id="sizeRowVal">30</span></label>
-          <input id="sizeRow" type="range" min="24" max="56" step="1" value="30">
+          <label>Ukuran Font (Pixel)</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <div><label style="margin-top:0;font-size:10px">Tanggal</label><input id="sizeDate" type="number" value="40"></div>
+            <div><label style="margin-top:0;font-size:10px">Jadwal</label><input id="sizeRow" type="number" value="30"></div>
+            <div><label style="margin-top:0;font-size:10px">Jam Ops</label><input id="sizeHours" type="number" value="35"></div>
+          </div>
           
-          <label>Ukuran Huruf – Operating Hours (px): <span id="sizeHoursVal">35</span></label>
-          <input id="sizeHours" type="range" min="24" max="56" step="1" value="35">
-          
-          <label>Warna Teks – Operating Hours</label>
-          <input id="hoursColor" type="color" value="#ffffff" style="height:35px; padding:2px;">
-
-          <label>Warna Teks Utama (Global Override)</label>
-          <div style="display:flex; gap:6px;">
-            <input id="allTextColor" type="color" value="#ffffff" style="height:35px; width:50px; padding:2px;">
-            <input id="allTextHex" type="text" value="#ffffff" placeholder="#ffffff" style="margin-top:0;">
+          <label>Warna Teks</label>
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1;">
+              <label style="margin-top:0; font-size:10px;">Global</label>
+              <input id="allTextColor" type="color" value="#ffffff" style="height:35px; padding:0;">
+              <input id="allTextHex" type="text" value="#ffffff" placeholder="#FFFFFF" style="margin-top:4px;">
+            </div>
+            <div style="flex:1;">
+              <label style="margin-top:0; font-size:10px;">Jam Ops</label>
+              <input id="hoursColor" type="color" value="#ffffff" style="height:35px; padding:0;">
+            </div>
           </div>
 
           <div style="display:flex; gap:8px; margin-top:12px; align-items:center;">
             <input id="showIndicators" type="checkbox" checked style="width:auto;">
             <label for="showIndicators" style="margin:0; font-weight:400;">Tampilkan Indikator ID + Koordinat</label>
           </div>
+
+          <button id="lockSettings" class="btn" style="background:#f59e0b; color:#0f172a; margin-top:16px;">
+            🔒 Kunci & Simpan Pengaturan
+          </button>
         </div>
       </details>
       
       <p class="small" style="margin-top:16px; opacity:0.7;">
-        Drag & drop teks/logo di kanvas.<br>
-        Tekan <b>Shift + Drag Logo</b> untuk Resize.<br>
-        Tekan <b>G</b> (toggle indikator) & <b>R</b> (reset posisi).
+        Tips: Shift + Drag logo untuk resize.
       </p>
-      
       <div style="height:20px;"></div>
     </div>
 
@@ -339,9 +294,9 @@
   </aside>
 
   <main>
-    <canvas id="poster" width="1080" height="1920" aria-label="Preview poster"></canvas>
+    <canvas id="poster" width="1080" height="1920"></canvas>
   </main>
 
-  <script src="jadwal.js?v=16"></script>
+  <script src="jadwal.js?v=19"></script>
 </body>
 </html>
