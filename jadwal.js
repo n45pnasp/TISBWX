@@ -1,5 +1,7 @@
 /******************************************************************
- * jadwal.js — v21 (Fix Month Undefined & Auto-Update Date)
+ * jadwal.js — v22 (Fixed Drag/Geser Responsiveness)
+ * - Fixed: Dragging logic now prevents default events immediately
+ * - Fixed: Hit testing made more robust
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -363,7 +365,7 @@ const IMG={};
 function loadImage(src){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; }); }
 async function getImg(src){ if(!src) return null; if(!IMG[src]) IMG[src]=await loadImage(src); return IMG[src]; }
 
-// ===== DATE HELPER (PERBAIKAN DI SINI) =====
+// ===== DATE HELPER =====
 const ID_DAYS = ['MINGGU','SENIN','SELASA','RABU','KAMIS','JUMAT','SABTU'];
 const ID_MONTHS = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
 
@@ -373,7 +375,6 @@ function populateDateDropdowns(){
   const now = new Date();
   if(!selDay) return;
   
-  // FIX 1: Generate Month Options dengan benar (tanpa undefined)
   selMonth.innerHTML = ID_MONTHS.map((m,i)=>`<option value="${i}">${m}</option>`).join('');
   
   selYear.innerHTML = [now.getFullYear(), now.getFullYear()+1].map(y=>`<option value="${y}">${y}</option>`).join('');
@@ -386,7 +387,6 @@ function populateDateDropdowns(){
   
   selMonth.onchange = refreshDays; selYear.onchange = refreshDays;
   
-  // Set dropdown ke hari ini
   selMonth.value = now.getMonth(); 
   selYear.value = now.getFullYear(); 
   refreshDays(); 
@@ -396,7 +396,6 @@ function populateDateDropdowns(){
      applyDateFromDropdown();
   };
 
-  // FIX 2: Langsung terapkan tanggal hari ini ke Textbox Input saat halaman dibuka
   applyDateFromDropdown();
 }
 
@@ -500,41 +499,96 @@ async function render(){
   }
 }
 
-// ===== DRAG & DROP ENGINE =====
+// ===== DRAG & DROP ENGINE (OPTIMIZED) =====
 let dragging=null;
 let resizingLogo=null; 
 
+// Fungsi Hit Test (Sync jika teks, Async jika logo butuh loading)
+async function getRectForItem(it){
+  const p = getPos(it.id);
+  
+  // LOGO
+  if(it.kind==='airline'){
+    const file = airlineLogo(it.getText());
+    const S = sizes();
+    const scale = getLogoScale(it.id);
+    const H = Math.max(10, S.logoBaseH * scale);
+    if(file){
+      // Kita panggil getImg yang sudah dicache
+      // Jika belum dicache, mungkin butuh waktu sedikit (await)
+      const img = await getImg(file);
+      const W = H * (img.width/img.height);
+      let x0=p.x; 
+      if(p.align==='center') x0-=W/2; 
+      else if(p.align==='right') x0-=W;
+      const y0=p.y - H/2;
+      return { x:x0, y:y0, w:W, h:H };
+    }
+  }
+  
+  // TEXT
+  ctx.save(); 
+  ctx.font=p.font;
+  // Hitung lebar teks secara sinkron
+  const w = ctx.measureText(it.getText()).width; 
+  ctx.restore();
+  
+  let x0=p.x; 
+  if(p.align==='center') x0-=w/2; 
+  else if(p.align==='right') x0-=w;
+  
+  // Asumsi tinggi hit box berdasarkan ukuran font (p.h)
+  const y0 = p.y - p.h + 6; 
+  return { x:x0, y:y0, w:Math.max(20, w), h:p.h+8 };
+}
+
+function pointer(e){
+  const r = c.getBoundingClientRect();
+  const cx = (e.touches?e.touches[0].clientX:e.clientX);
+  const cy = (e.touches?e.touches[0].clientY:e.clientY);
+  return { x: (cx-r.left)*(BASE_W/r.width), y: (cy-r.top)*(BASE_H/r.height) };
+}
+
+// Event Handler: Mouse Down / Touch Start
 async function onDown(e){
-  if(isLocked) return; // Kunci aktif -> Stop geser
+  if(isLocked) return; // Jika terkunci, abaikan
+
+  // PENTING: Mencegah scroll/zoom default browser agar drag lancar
+  if(e.type === 'touchstart') e.preventDefault(); 
 
   const p = pointer(e);
-  for(let i=items.length-1;i>=0;i--){
-    const it=items[i];
+  
+  // Loop cek item mana yang kena sentuh
+  for(let i=items.length-1; i>=0; i--){
+    const it = items[i];
     try {
-      const r=await getRectForItem(it);
-      if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h){
-        const pos=getPos(it.id);
+      const r = await getRectForItem(it);
+      if(p.x >= r.x && p.x <= r.x+r.w && p.y >= r.y && p.y <= r.y+r.h){
+        const pos = getPos(it.id);
         
+        // Fitur Resize Logo (Shift + Drag atau 2 jari)
         if (it.kind==='airline' && (e.shiftKey || (e.touches && e.touches.length===2))) {
           const cur = getLogoScale(it.id);
           resizingLogo = { id: it.id, startY: p.y, startScale: cur };
         } else {
-          dragging={ id:it.id, offX: pos.x-p.x, offY: pos.y-p.y };
+          dragging = { id:it.id, offX: pos.x-p.x, offY: pos.y-p.y };
         }
-        e.preventDefault(); 
-        return;
+        return; // Stop loop jika sudah dapat 1 item
       }
     } catch(err){}
   }
 }
 
+// Event Handler: Move
 function onMove(e){
   if(isLocked) return;
+  
+  // Jika sedang drag, prevent default agar tidak select text lain
+  if(dragging || resizingLogo) e.preventDefault();
 
-  const p=pointer(e);
+  const p = pointer(e);
   
   if(resizingLogo){
-    e.preventDefault();
     const dy = (p.y - resizingLogo.startY);
     const newScale = Math.max(0.1, Math.min(3.0, resizingLogo.startScale * (1 + dy/240)));
     setLogoScale(resizingLogo.id, newScale);
@@ -543,30 +597,29 @@ function onMove(e){
   }
   
   if(dragging){
-    e.preventDefault();
-    posOverrides[dragging.id]={ x:Math.round(p.x+dragging.offX), y:Math.round(p.y+dragging.offY) };
+    posOverrides[dragging.id] = { 
+      x: Math.round(p.x + dragging.offX), 
+      y: Math.round(p.y + dragging.offY) 
+    };
     render();
   }
 }
 
+// Event Handler: Up / End
 function onUp(){ 
   if(dragging || resizingLogo) {
      saveJSON(LS_POS, posOverrides); 
   }
-  dragging=null; resizingLogo=null; 
+  dragging = null; 
+  resizingLogo = null; 
 }
 
-function pointer(e){
-  const r = c.getBoundingClientRect();
-  const cx = (e.touches?e.touches[0].clientX:e.clientX), cy = (e.touches?e.touches[0].clientY:e.clientY);
-  return { x: (cx-r.left)*(BASE_W/r.width), y: (cy-r.top)*(BASE_H/r.height) };
-}
-
-// Event Bindings
+// Bind Events
 c.addEventListener('mousedown', onDown);
 window.addEventListener('mousemove', onMove);
 window.addEventListener('mouseup', onUp);
 
+// Passive: false penting agar preventDefault() jalan di mobile
 c.addEventListener('touchstart', onDown, {passive:false});
 window.addEventListener('touchmove', onMove, {passive:false});
 window.addEventListener('touchend', onUp);
