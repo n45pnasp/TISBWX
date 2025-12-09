@@ -1,7 +1,8 @@
+
 /******************************************************************
- * jadwal.js — v22 (Fixed Drag/Geser Responsiveness)
- * - Fixed: Dragging logic now prevents default events immediately
- * - Fixed: Hit testing made more robust
+ * jadwal.js — v23 (Updated Flight Schedule Data)
+ * - Fixed: Dragging logic & Hit testing
+ * - Update: Jadwal penerbangan baru (Lombok, Surabaya, Jakarta)
  ******************************************************************/
 
 // ===== Basis koordinat
@@ -170,46 +171,63 @@ const ASSETS = {
 const state = {
   bgURL: ASSETS.bg,
   globalColor: '#ffffff',
+  // --- UPDATED ARRIVALS ---
   arrivals: [
     { airline:'SUPER AIR JET', flight:'IU 370', city:'JAKARTA',  time:'10:15 WIB' },
-    { airline:'WINGS AIR',     flight:'IW 1880', city:'SURABAYA', time:'12:40 WIB' }
+    { airline:'WINGS AIR',     flight:'IW 1844', city:'LOMBOK',  time:'12:30 WIB' },
+    { airline:'WINGS AIR',     flight:'IW 1880', city:'SURABAYA', time:'16:25 WIB' }
   ],
+  // --- UPDATED DEPARTURES ---
   departures: [
+    { airline:'WINGS AIR',     flight:'IW 1881', city:'SURABAYA', time:'07:00 WIB' },
     { airline:'SUPER AIR JET', flight:'IU 371', city:'JAKARTA',  time:'10:55 WIB' },
-    { airline:'WINGS AIR',     flight:'IW 1881', city:'SURABAYA', time:'13:00 WIB' }
+    { airline:'WINGS AIR',     flight:'IW 1845', city:'LOMBOK',  time:'12:55 WIB' }
   ]
 };
 
-// ===== Posisi Default
+// ===== Posisi Default (Terupdate untuk 3 Baris Rapi)
 const POS_DEFAULT = {
-  date: { x:531, y:509, align:'center', color:'#ffffff', h:48 },
+  // Header Tanggal & Footer Jam
+  date:  { x:531, y:509,  align:'center', color:'#ffffff', h:48 },
   hours: { x:702, y:1384, align:'center', color:'#ffffff', h:44 },
-  // Arrivals
-  arr_0_airline:{ x:57,  y:676, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  arr_0_flight :{ x:366, y:689, align:'left',  color:'#ffffff', h:40 },
-  arr_0_city   :{ x:630, y:689, align:'left',  color:'#ffffff', h:40 },
-  arr_0_time   :{ x:1020,y:689, align:'right', color:'#ffffff', h:40 },
-  arr_1_airline:{ x:57,  y:746, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  arr_1_flight :{ x:354, y:759, align:'left',  color:'#ffffff', h:40 },
-  arr_1_city   :{ x:621, y:759, align:'left',  color:'#ffffff', h:40 },
-  arr_1_time   :{ x:1017,y:759, align:'right', color:'#ffffff', h:40 },
-  arr_2_airline:{ x:57,  y:831, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  arr_2_flight :{ x:363, y:844, align:'left',  color:'#ffffff', h:40 },
-  arr_2_city   :{ x:603, y:844, align:'left',  color:'#ffffff', h:40 },
-  arr_2_time   :{ x:1020,y:844, align:'right', color:'#ffffff', h:40 },
-  // Departures
-  dep_0_airline:{ x:57,  y:1071, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  dep_0_flight :{ x:366, y:1084, align:'left',  color:'#ffffff', h:40 },
-  dep_0_city   :{ x:630, y:1084, align:'left',  color:'#ffffff', h:40 },
-  dep_0_time   :{ x:1020,y:1084, align:'right', color:'#ffffff', h:40 },
-  dep_1_airline:{ x:57,  y:1146, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  dep_1_flight :{ x:354, y:1159, align:'left',  color:'#ffffff', h:40 },
-  dep_1_city   :{ x:621, y:1159, align:'left',  color:'#ffffff', h:40 },
-  dep_1_time   :{ x:1017,y:1159, align:'right', color:'#ffffff', h:40 },
-  dep_2_airline:{ x:57,  y:1221, align:'left',  color:'#ffffff', h:40, kind:'airline' },
-  dep_2_flight :{ x:363, y:1234, align:'left',  color:'#ffffff', h:40 },
-  dep_2_city   :{ x:603, y:1234, align:'left',  color:'#ffffff', h:40 },
-  dep_2_time   :{ x:1020,y:1234, align:'right', color:'#ffffff', h:40 }
+
+  // --- ARRIVALS (KEDATANGAN) ---
+  // Baris 1 (Y Base: 689)
+  arr_0_airline:{ x:57,   y:689, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_0_flight :{ x:366,  y:689, align:'left',  color:'#ffffff', h:40 },
+  arr_0_city   :{ x:630,  y:689, align:'left',  color:'#ffffff', h:40 },
+  arr_0_time   :{ x:1020, y:689, align:'right', color:'#ffffff', h:40 },
+
+  // Baris 2 (Y Base: 759 -> Jarak +70px)
+  arr_1_airline:{ x:57,   y:759, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_1_flight :{ x:366,  y:759, align:'left',  color:'#ffffff', h:40 },
+  arr_1_city   :{ x:630,  y:759, align:'left',  color:'#ffffff', h:40 },
+  arr_1_time   :{ x:1020, y:759, align:'right', color:'#ffffff', h:40 },
+
+  // Baris 3 (Y Base: 829 -> Jarak +70px)
+  arr_2_airline:{ x:57,   y:829, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  arr_2_flight :{ x:366,  y:829, align:'left',  color:'#ffffff', h:40 },
+  arr_2_city   :{ x:630,  y:829, align:'left',  color:'#ffffff', h:40 },
+  arr_2_time   :{ x:1020, y:829, align:'right', color:'#ffffff', h:40 },
+
+  // --- DEPARTURES (KEBERANGKATAN) ---
+  // Baris 1 (Y Base: 1084)
+  dep_0_airline:{ x:57,   y:1084, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_0_flight :{ x:366,  y:1084, align:'left',  color:'#ffffff', h:40 },
+  dep_0_city   :{ x:630,  y:1084, align:'left',  color:'#ffffff', h:40 },
+  dep_0_time   :{ x:1020, y:1084, align:'right', color:'#ffffff', h:40 },
+
+  // Baris 2 (Y Base: 1154 -> Jarak +70px)
+  dep_1_airline:{ x:57,   y:1154, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_1_flight :{ x:366,  y:1154, align:'left',  color:'#ffffff', h:40 },
+  dep_1_city   :{ x:630,  y:1154, align:'left',  color:'#ffffff', h:40 },
+  dep_1_time   :{ x:1020, y:1154, align:'right', color:'#ffffff', h:40 },
+
+  // Baris 3 (Y Base: 1224 -> Jarak +70px)
+  dep_2_airline:{ x:57,   y:1224, align:'left',  color:'#ffffff', h:40, kind:'airline' },
+  dep_2_flight :{ x:366,  y:1224, align:'left',  color:'#ffffff', h:40 },
+  dep_2_city   :{ x:630,  y:1224, align:'left',  color:'#ffffff', h:40 },
+  dep_2_time   :{ x:1020, y:1224, align:'right', color:'#ffffff', h:40 }
 };
 
 const LS_POS   = 'fs_positions_v12';
@@ -251,7 +269,7 @@ function sizes(){
     rowFont  : `800 ${szRow}px Montserrat, system-ui, sans-serif`,
     hoursFont: `900 ${szHours}px Montserrat, system-ui, sans-serif`,
     hoursColor: hoursCol,
-    rowH     : Math.round(szRow * 1.2),
+    rowH      : Math.round(szRow * 1.2),
     dateH : Math.round(szDate * 1.12),
     hoursH: Math.round(szHours * 1.12),
     logoBaseH : 34
@@ -393,7 +411,7 @@ function populateDateDropdowns(){
   selDay.value = now.getDate();
 
   btnDateGo.onclick = () => {
-     applyDateFromDropdown();
+      applyDateFromDropdown();
   };
 
   applyDateFromDropdown();
@@ -608,7 +626,7 @@ function onMove(e){
 // Event Handler: Up / End
 function onUp(){ 
   if(dragging || resizingLogo) {
-     saveJSON(LS_POS, posOverrides); 
+      saveJSON(LS_POS, posOverrides); 
   }
   dragging = null; 
   resizingLogo = null; 
